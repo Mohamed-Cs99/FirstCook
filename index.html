@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام حضور وانصراف الموظفين</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>نظام حضور وانصراف الموظفين</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="daily">الحضور اليومي</div>
+            <div class="tab" data-tab="employees">إدارة الموظفين</div>
+            <div class="tab" data-tab="reports">التقارير الشهرية</div>
+        </div>
+        
+        <!-- Daily Attendance Tab -->
+        <div id="daily" class="tab-content active">
+            <h2>تسجيل الحضور اليومي</h2>
+            <div class="search-container">
+                <input type="date" id="attendanceDate" value="">
+                <button id="loadAttendanceBtn" class="search-btn">تحميل الحضور</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="dailyAttendanceTable">
+                    <thead>
+                        <tr>
+                            <th>رقم الموظف</th>
+                            <th>اسم الموظف</th>
+                            <th>القسم</th>
+                            <th>الحضور</th>
+                            <th>ساعات العمل</th>
+                            <th>التأخير (دقائق)</th>
+                            <th>ملاحظات</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyAttendanceBody">
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <button id="saveAttendanceBtn" class="submit-btn">حفظ الحضور اليومي</button>
+        </div>
+        
+        <!-- Employees Management Tab -->
+        <div id="employees" class="tab-content">
+            <h2>إدارة الموظفين</h2>
+            <form id="employeeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empName">اسم الموظف</label>
+                        <input type="text" id="empName" name="empName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="empDepartment">القسم</label>
+                        <select id="empDepartment" name="empDepartment" required>
+                            <option value="">اختر القسم</option>
+                            <option value="الإنتاج">الإنتاج</option>
+                            <option value="الجودة">الجودة</option>
+                            <option value="الصيانة">الصيانة</option>
+                            <option value="التخزين">التخزين</option>
+                            <option value="الإدارة">الإدارة</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empId">رقم الموظف</label>
+                        <input type="text" id="empId" name="empId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="empSalary">الراتب الأساسي</label>
+                        <input type="number" id="empSalary" name="empSalary" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">حفظ بيانات الموظف</button>
+            </form>
+            
+            <div class="search-container">
+                <input type="text" id="employeeSearch" placeholder="ابحث باسم الموظف أو رقمه أو قسمه...">
+                <button id="searchEmployeeBtn" class="search-btn">مسح البحث</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="employeesTable">
+                    <thead>
+                        <tr>
+                            <th>رقم الموظف</th>
+                            <th>اسم الموظف</th>
+                            <th>القسم</th>
+                            <th>الراتب</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeesBody">
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <h2>التقارير الشهرية</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="reportMonth">اختر الشهر</label>
+                    <input type="month" id="reportMonth" name="reportMonth" required>
+                </div>
+                <div class="form-group">
+                    <label for="reportEmployee">اختر الموظف (اختياري)</label>
+                    <select id="reportEmployee" name="reportEmployee">
+                        <option value="">جميع الموظفين</option>
+                        <!-- Employee options will be added by JavaScript -->
+                    </select>
+                </div>
+            </div>
+            
+            <button id="generateReportBtn" class="report-btn">إنشاء التقرير</button>
+            
+            <div class="table-container" style="margin-top: 30px;">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th>رقم الموظف</th>
+                            <th>اسم الموظف</th>
+                            <th>القسم</th>
+                            <th>أيام الحضور</th>
+                            <th>أيام الغياب</th>
+                            <th>إجمالي ساعات العمل</th>
+                            <th>إجمالي التأخير (دقائق)</th>
+                            <th>إجمالي الخصومات</th>
+                            <th>تفاصيل</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody">
+                        <!-- Report data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="reportDetails" style="margin-top: 30px; display: none;">
+                <h3>تفاصيل الحضور</h3>
+                <div class="table-container">
+                    <table id="detailsTable">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الحضور</th>
+                                <th>ساعات العمل</th>
+                                <th>التأخير</th>
+                                <th>الخصم</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsBody">
+                            <!-- Details data will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
