@@ -34,12 +34,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('employeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Calculate total salary
+        // const basicSalary = parseFloat(document.getElementById('empSalary').value) || 0;
+        const subscriptionSalary = parseFloat(document.getElementById('empSubscription').value) || 0;
+        const inclusiveSalary = parseFloat(document.getElementById('empInclusive').value) || 0;
+        const transfers = parseFloat(document.getElementById('empTransfers').value) || 0;
+        
+        const totalSalary =  subscriptionSalary + inclusiveSalary + transfers;
+        
         const employee = {
             id: currentEmployeeId || Date.now().toString(),
             name: document.getElementById('empName').value,
             department: document.getElementById('empDepartment').value,
             employeeId: document.getElementById('empId').value,
-            salary: document.getElementById('empSalary').value
+            // basicSalary: basicSalary,
+            subscriptionSalary: subscriptionSalary,
+            inclusiveSalary: inclusiveSalary,
+            transfers: transfers,
+            totalSalary: totalSalary
         };
         
         if (currentEmployeeId) {
@@ -56,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         localStorage.setItem('employees', JSON.stringify(employees));
         this.reset();
+        document.getElementById('empTransfers').value = '0'; // Reset transfers to 0
         loadEmployees();
     });
     
@@ -101,7 +114,7 @@ function searchEmployees(searchTerm) {
             emp.name.toLowerCase().includes(term) ||
             emp.employeeId.toLowerCase().includes(term) ||
             emp.department.toLowerCase().includes(term) ||
-            emp.salary.toString().includes(term)
+            emp.totalSalary.toString().includes(term)
         );
     }
     
@@ -124,7 +137,10 @@ function displayEmployees(employeesToDisplay) {
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
             <td>${emp.department}</td>
-            <td>${emp.salary}</td>
+            <td>${emp.subscriptionSalary}</td>
+            <td>${emp.inclusiveSalary}</td>
+            <td>${emp.transfers}</td>
+            <td>${emp.totalSalary}</td>
             <td>
                 <button class="action-btn edit-btn" data-id="${emp.id}">تعديل</button>
                 <button class="action-btn delete-btn" data-id="${emp.id}">حذف</button>
@@ -153,7 +169,9 @@ function addEmployeeActionListeners() {
                 document.getElementById('empName').value = emp.name;
                 document.getElementById('empDepartment').value = emp.department;
                 document.getElementById('empId').value = emp.employeeId;
-                document.getElementById('empSalary').value = emp.salary;
+                document.getElementById('empSubscription').value = emp.subscriptionSalary;
+                document.getElementById('empInclusive').value = emp.inclusiveSalary;
+                document.getElementById('empTransfers').value = emp.transfers;
                 currentEmployeeId = id;
                 
                 // Scroll to form
@@ -203,15 +221,16 @@ function loadDailyAttendance() {
     }
 
     if (employees.length === 0) {
-        dailyAttendanceBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
+        dailyAttendanceBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
         return;
     }
 
     employees.forEach(emp => {
-        // Check if we have attendance record for this employee on this date
         const record = attendanceRecords.find(r =>
             r.employeeId === emp.id && r.date === date
         );
+
+        const isPresent = record?.status === 'present' || !record;
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -220,14 +239,17 @@ function loadDailyAttendance() {
             <td>${emp.department}</td>
             <td>
                 <select class="attendance-status" data-employee="${emp.id}">
-                    <option value="present" ${record?.status === 'present' ? 'selected' : ''}>حاضر</option>
+                    <option value="present" ${isPresent ? 'selected' : ''}>حاضر</option>
                     <option value="absent" ${record?.status === 'absent' ? 'selected' : ''}>غائب</option>
-                    <option value="late" ${record?.status === 'late' ? 'selected' : ''}>متأخر</option>
                 </select>
             </td>
             <td>
                 <input type="number" class="work-hours" data-employee="${emp.id}" 
-                       value="${record?.workHours || 8}" min="0" max="12">
+                       value="${isPresent ? (record?.workHours || 8) : 0}" min="0" max="12">
+            </td>
+            <td>
+                <input type="number" class="extra-hours" data-employee="${emp.id}" 
+                       value="${record?.extraHours || 0}" min="0" max="16"> <!-- New field -->
             </td>
             <td>
                 <input type="number" class="delay-minutes" data-employee="${emp.id}" 
@@ -242,15 +264,21 @@ function loadDailyAttendance() {
             </td>
         `;
 
-        // Add class based on attendance status
         if (record) {
             row.classList.add(record.status);
         }
 
         dailyAttendanceBody.appendChild(row);
+
+        // Add dynamic update for work hours
+        const attendanceStatus = row.querySelector(`.attendance-status[data-employee="${emp.id}"]`);
+        const workHoursInput = row.querySelector(`.work-hours[data-employee="${emp.id}"]`);
+
+        attendanceStatus.addEventListener('change', () => {
+            workHoursInput.value = attendanceStatus.value === 'present' ? 8 : 0;
+        });
     });
 
-    // Add event listeners to save buttons
     document.querySelectorAll('.save-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const employeeId = this.dataset.employee;
@@ -258,14 +286,18 @@ function loadDailyAttendance() {
         });
     });
 }
-
 // Save attendance for a single employee
 function saveEmployeeAttendance(employeeId) {
     const date = document.getElementById('attendanceDate').value;
     const status = document.querySelector(`.attendance-status[data-employee="${employeeId}"]`).value;
     const workHours = document.querySelector(`.work-hours[data-employee="${employeeId}"]`).value;
+    const extraHours = document.querySelector(`.extra-hours[data-employee="${employeeId}"]`).value; // Extra hours
     const delay = document.querySelector(`.delay-minutes[data-employee="${employeeId}"]`).value;
     const notes = document.querySelector(`.notes[data-employee="${employeeId}"]`).value;
+
+    // Set work hours and extra hours to 0 if absent
+    const finalWorkHours = status === 'absent' ? 0 : parseInt(workHours);
+    const finalExtraHours = status === 'absent' ? 0 : parseInt(extraHours);
 
     // Find existing record
     const existingIndex = attendanceRecords.findIndex(r =>
@@ -276,7 +308,8 @@ function saveEmployeeAttendance(employeeId) {
         employeeId,
         date,
         status,
-        workHours: parseInt(workHours),
+        workHours: finalWorkHours,
+        extraHours: finalExtraHours, // Save extra hours
         delay: parseInt(delay),
         notes,
         deduction: calculateDeduction(status, parseInt(delay))
@@ -296,7 +329,7 @@ function saveEmployeeAttendance(employeeId) {
     // Update row styling
     const rows = document.querySelectorAll('#dailyAttendanceBody tr');
     rows.forEach(row => {
-        row.classList.remove('present', 'absent', 'late');
+        row.classList.remove('present', 'absent');
         if (row.querySelector(`.attendance-status[data-employee="${employeeId}"]`)) {
             row.classList.add(status);
         }
@@ -315,9 +348,6 @@ function saveDailyAttendance() {
 function calculateDeduction(status, delay) {
     if (status === 'absent') {
         return 1; // 1 day salary deduction
-    } else if (status === 'late') {
-        // Example: 0.5 day deduction if delay > 60 minutes
-        return delay > 60 ? 0.5 : delay / 120; // 120 minutes = 0.5 day
     }
     return 0;
 }
@@ -349,13 +379,11 @@ function generateReport() {
     const startDate = `${year}-${monthNum}-01`;
     const endDate = `${year}-${monthNum}-${new Date(year, monthNum, 0).getDate()}`;
 
-    // Filter records for selected month and employee (if specified)
     let filteredRecords = attendanceRecords.filter(record => {
         return record.date >= startDate && record.date <= endDate && 
                (!employeeId || record.employeeId === employeeId);
     });
 
-    // Group by employee
     const employeeMap = new Map();
 
     filteredRecords.forEach(record => {
@@ -383,12 +411,14 @@ function generateReport() {
             employeeData.absentDays++;
         }
 
-        employeeData.totalHours += record.workHours || 0;
+        const extraHours = record.extraHours || 0;
+        const workHours = record.workHours || 0;
+        employeeData.totalHours += workHours + (extraHours * 1.5);
+
         employeeData.totalDelay += record.delay || 0;
         employeeData.totalDeduction += record.deduction || 0;
     });
 
-    // Display report
     const reportBody = document.getElementById('reportBody');
     reportBody.innerHTML = '';
 
@@ -406,7 +436,7 @@ function generateReport() {
             <td>${data.employee.department}</td>
             <td>${data.presentDays}</td>
             <td>${data.absentDays}</td>
-            <td>${data.totalHours}</td>
+            <td>${data.totalHours.toFixed(2)}</td>
             <td>${data.totalDelay}</td>
             <td>${data.totalDeduction.toFixed(2)} يوم</td>
             <td><button class="action-btn details-btn" data-employee="${empId}">عرض التفاصيل</button></td>
@@ -414,7 +444,6 @@ function generateReport() {
         reportBody.appendChild(row);
     });
 
-    // Add event listeners to details buttons
     document.querySelectorAll('.details-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const empId = this.dataset.employee;
@@ -444,11 +473,17 @@ function showEmployeeDetails(employeeId, month) {
     detailsBody.innerHTML = '';
 
     employeeRecords.forEach(record => {
+        const extraHours = record.extraHours || 0;
+        const workHours = record.workHours || 0;
+        const totalHours = workHours + (extraHours * 1.5);
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${record.date}</td>
             <td>${getStatusText(record.status)}</td>
-            <td>${record.workHours}</td>
+            <td>${workHours.toFixed(2)}</td>
+            <td>${extraHours.toFixed(2)}</td>
+            <td>${totalHours.toFixed(2)}</td>
             <td>${record.delay}</td>
             <td>${record.deduction.toFixed(2)} يوم</td>
             <td>${record.notes || '-'}</td>
@@ -459,13 +494,11 @@ function showEmployeeDetails(employeeId, month) {
     document.getElementById('reportDetails').style.display = 'block';
     document.getElementById('reportDetails').scrollIntoView();
 }
-
 // Helper function to get status text
 function getStatusText(status) {
     const statusMap = {
         'present': 'حاضر',
-        'absent': 'غائب',
-        'late': 'متأخر'
+        'absent': 'غائب'
     };
     return statusMap[status] || status;
 }
