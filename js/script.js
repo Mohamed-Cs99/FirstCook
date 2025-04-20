@@ -127,7 +127,7 @@ function displayEmployees(employeesToDisplay) {
     employeesBody.innerHTML = '';
     
     if (employeesToDisplay.length === 0) {
-        employeesBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
+        employeesBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
         return;
     }
     
@@ -486,7 +486,7 @@ function calculateWorkedDays(employee, monthlyRecords) {
     });
 
     // Calculate extra days from overtime (every 8 extra hours = 1 day)
-    const extraDays = totalExtraHours / 8;
+    const extraDays = (totalExtraHours*1.5) / 8;
     
     return {
         attendedDays,
