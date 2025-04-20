@@ -364,7 +364,14 @@ function loadEmployeeOptions() {
         select.appendChild(option);
     });
 }
-
+function addDetailsButtonListeners(month) {
+    document.querySelectorAll('.details-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const empId = this.dataset.employee;
+            showEmployeeDetails(empId, month);
+        });
+    });
+}
 // Generate monthly report
 function generateReport() {
     const month = document.getElementById('reportMonth').value;
@@ -375,83 +382,36 @@ function generateReport() {
         return;
     }
 
-    const [year, monthNum] = month.split('-');
-    const startDate = `${year}-${monthNum}-01`;
-    const endDate = `${year}-${monthNum}-${new Date(year, monthNum, 0).getDate()}`;
-
-    let filteredRecords = attendanceRecords.filter(record => {
-        return record.date >= startDate && record.date <= endDate && 
-               (!employeeId || record.employeeId === employeeId);
-    });
-
-    const employeeMap = new Map();
-
-    filteredRecords.forEach(record => {
-        if (!employeeMap.has(record.employeeId)) {
-            const emp = employees.find(e => e.id === record.employeeId);
-            if (emp) {
-                employeeMap.set(record.employeeId, {
-                    employee: emp,
-                    records: [],
-                    presentDays: 0,
-                    absentDays: 0,
-                    totalHours: 0,
-                    totalDelay: 0,
-                    totalDeduction: 0
-                });
-            }
-        }
-
-        const employeeData = employeeMap.get(record.employeeId);
-        employeeData.records.push(record);
-
-        if (record.status === 'present') {
-            employeeData.presentDays++;
-        } else if (record.status === 'absent') {
-            employeeData.absentDays++;
-        }
-
-        const extraHours = record.extraHours || 0;
-        const workHours = record.workHours || 0;
-        employeeData.totalHours += workHours + (extraHours * 1.5);
-
-        employeeData.totalDelay += record.delay || 0;
-        employeeData.totalDeduction += record.deduction || 0;
-    });
+    let filteredEmployees = employees;
+    if (employeeId) {
+        filteredEmployees = employees.filter(e => e.id === employeeId);
+    }
 
     const reportBody = document.getElementById('reportBody');
     reportBody.innerHTML = '';
 
-    if (employeeMap.size === 0) {
-        reportBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا توجد بيانات لهذا الشهر</td></tr>';
-        document.getElementById('reportDetails').style.display = 'none';
-        return;
-    }
-
-    employeeMap.forEach((data, empId) => {
+    filteredEmployees.forEach(emp => {
+        const report = generateSalaryReport(emp.id, month);
+        
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${data.employee.employeeId}</td>
-            <td>${data.employee.name}</td>
-            <td>${data.employee.department}</td>
-            <td>${data.presentDays}</td>
-            <td>${data.absentDays}</td>
-            <td>${data.totalHours.toFixed(2)}</td>
-            <td>${data.totalDelay}</td>
-            <td>${data.totalDeduction.toFixed(2)} يوم</td>
-            <td><button class="action-btn details-btn" data-employee="${empId}">عرض التفاصيل</button></td>
+            <td>${emp.employeeId}</td>
+            <td>${emp.name}</td>
+            <td>${emp.department}</td>
+            <td>${report.daysData.attendedDays}</td>
+            <td>${report.daysData.extraDays.toFixed(2)}</td>
+            <td>${report.daysData.totalWorkedDays.toFixed(2)}</td>
+            <td>${report.initialSalary.toFixed(2)}</td>
+            <td>${report.inclusiveSalary.toFixed(2)}</td>
+            <td>${emp.transfers.toFixed(2)}</td>
+            <td>${report.totalSalary.toFixed(2)}</td>
+            <td><button class="action-btn details-btn" data-employee="${emp.id}">عرض التفاصيل</button></td>
         `;
         reportBody.appendChild(row);
     });
 
-    document.querySelectorAll('.details-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const empId = this.dataset.employee;
-            showEmployeeDetails(empId, month);
-        });
-    });
-
-    document.getElementById('reportDetails').style.display = 'none';
+    // Add event listeners to details buttons
+    addDetailsButtonListeners(month);
 }
 
 // Show detailed attendance for an employee
@@ -501,4 +461,108 @@ function getStatusText(status) {
         'absent': 'غائب'
     };
     return statusMap[status] || status;
+}
+
+function calculateDailySalary(employee) {
+    // Daily salary components
+    const dailySubscription = employee.subscriptionSalary / 30;
+    const dailyInclusive = employee.inclusiveSalary / 30;
+    
+    return {
+        dailySubscription,
+        dailyInclusive
+    };
+}
+
+function calculateWorkedDays(employee, monthlyRecords) {
+    let attendedDays = 0;
+    let totalExtraHours = 0;
+
+    monthlyRecords.forEach(record => {
+        if (record.status === 'present') {
+            attendedDays++;
+            totalExtraHours += record.extraHours || 0;
+        }
+    });
+
+    // Calculate extra days from overtime (every 8 extra hours = 1 day)
+    const extraDays = totalExtraHours / 8;
+    
+    return {
+        attendedDays,
+        extraDays,
+        totalWorkedDays: attendedDays + extraDays
+    };
+}
+
+function calculateSalaryComponents(employee, monthlyRecords) {
+    // Get daily rates
+    const dailyRates = calculateDailySalary(employee);
+    
+    // Calculate worked days
+    const daysData = calculateWorkedDays(employee, monthlyRecords);
+    
+    // Calculate salary components
+    const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
+    const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
+    
+    return {
+        dailyRates,
+        daysData,
+        initialSalary,
+        inclusiveSalary,
+        totalSalary: initialSalary + inclusiveSalary + employee.transfers
+    };
+}
+
+function generateSalaryReport(employeeId, month) {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return null;
+    
+    // Filter records for this month
+    const monthlyRecords = attendanceRecords.filter(record => 
+        record.employeeId === employeeId && 
+        record.date.startsWith(month)
+    );
+    
+    // Calculate salary
+    const salaryData = calculateSalaryComponents(employee, monthlyRecords);
+    
+    return {
+        employeeId: employee.employeeId,
+        employeeName: employee.name,
+        department: employee.department,
+        month,
+        ...salaryData,
+        transfers: employee.transfers,
+        breakdown: {
+            "أجر الاشتراك اليومي": salaryData.dailyRates.dailySubscription.toFixed(2),
+            "أجر الشامل اليومي": salaryData.dailyRates.dailyInclusive.toFixed(2),
+            "أيام الحضور الفعلي": salaryData.daysData.attendedDays,
+            "أيام الإضافي": salaryData.daysData.extraDays.toFixed(2),
+            "إجمالي أيام العمل": salaryData.daysData.totalWorkedDays.toFixed(2),
+            "الراتب الأولي (اشتراك)": salaryData.initialSalary.toFixed(2),
+            "الراتب الشامل": salaryData.inclusiveSalary.toFixed(2),
+            "بدل الانتقالات": employee.transfers.toFixed(2),
+            "إجمالي الراتب": salaryData.totalSalary.toFixed(2)
+        }
+    };
+}
+
+function showSalaryDetails(employeeId, month) {
+    const report = generateSalaryReport(employeeId, month);
+    const detailsBody = document.getElementById('detailsBody');
+    detailsBody.innerHTML = '';
+
+    // Add salary breakdown
+    Object.entries(report.breakdown).forEach(([key, value]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="2"><strong>${key}</strong></td>
+            <td>${value}</td>
+        `;
+        detailsBody.appendChild(row);
+    });
+
+    document.getElementById('reportDetails').style.display = 'block';
 }
