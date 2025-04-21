@@ -1,17 +1,18 @@
-// Data structure
 let employees = JSON.parse(localStorage.getItem('employees')) || [];
 let attendanceRecords = JSON.parse(localStorage.getItem('attendance')) || [];
+let financialRecords = JSON.parse(localStorage.getItem('financial')) || [];
 let currentEmployeeId = null;
-let currentReportEmployee = null;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
     // Set today's date in attendance date picker
     document.getElementById('attendanceDate').valueAsDate = new Date();
     
-    // Set current month in report month picker
-    document.getElementById('reportMonth').value = new Date().toISOString().slice(0, 7);
-    
+    // Set current month in report and financial month pickers
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    document.getElementById('reportMonth').value = currentMonth;
+    document.getElementById('financialMonth').value = currentMonth;
+
     // Tab switching functionality
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function() {
@@ -26,85 +27,138 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadEmployees();
             } else if (this.dataset.tab === 'reports') {
                 loadEmployeeOptions();
+            } else if (this.dataset.tab === 'financial') {
+                loadFinancialEmployeeOptions();
+                loadFinancialRecords();
             }
         });
     });
-    
+
     // Employee form submission
     document.getElementById('employeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Calculate total salary
-        // const basicSalary = parseFloat(document.getElementById('empSalary').value) || 0;
         const subscriptionSalary = parseFloat(document.getElementById('empSubscription').value) || 0;
         const inclusiveSalary = parseFloat(document.getElementById('empInclusive').value) || 0;
         const transfers = parseFloat(document.getElementById('empTransfers').value) || 0;
-        
-        const totalSalary =  subscriptionSalary + inclusiveSalary + transfers;
+        const insuranceMoney = parseFloat(document.getElementById('insuranceMoney').value) || 0;
+        const totalSalary = (subscriptionSalary + inclusiveSalary + transfers)-insuranceMoney;
         
         const employee = {
             id: currentEmployeeId || Date.now().toString(),
             name: document.getElementById('empName').value,
             department: document.getElementById('empDepartment').value,
             employeeId: document.getElementById('empId').value,
-            // basicSalary: basicSalary,
-            subscriptionSalary: subscriptionSalary,
-            inclusiveSalary: inclusiveSalary,
-            transfers: transfers,
-            totalSalary: totalSalary
+            subscriptionSalary,
+            inclusiveSalary,
+            transfers,
+            insuranceMoney,
+            totalSalary
         };
         
         if (currentEmployeeId) {
-            // Update existing employee
             const index = employees.findIndex(emp => emp.id === currentEmployeeId);
             if (index !== -1) {
                 employees[index] = employee;
             }
             currentEmployeeId = null;
         } else {
-            // Add new employee
             employees.push(employee);
         }
         
         localStorage.setItem('employees', JSON.stringify(employees));
         this.reset();
-        document.getElementById('empTransfers').value = '0'; // Reset transfers to 0
+        document.getElementById('empTransfers').value = '0';
+        document.getElementById('insuranceMoney').value = '0';
         loadEmployees();
     });
-    
+
+    // Financial form submission
+    document.getElementById('financialForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const month = document.getElementById('financialMonth').value;
+        const employeeId = document.getElementById('financialEmployee').value;
+        
+        if (!month || !employeeId) {
+            alert('الرجاء اختيار الشهر والموظف');
+            return;
+        }
+        
+        const record = {
+            id: Date.now().toString(),
+            employeeId,
+            month,
+            advance: parseFloat(document.getElementById('advance').value) || 0,
+            deferredAdvance: parseFloat(document.getElementById('deferredAdvance').value) || 0,
+            penalty: parseFloat(document.getElementById('penalty').value) || 0,
+            bonus: parseFloat(document.getElementById('bonus').value) || 0,
+            regularityAllowance: parseFloat(document.getElementById('regularityAllowance').value) || 0
+        };
+        
+        const totalDeductions = record.advance + record.deferredAdvance + record.penalty;
+        const totalAdditions = record.bonus + record.regularityAllowance;
+        record.totalDeductions = totalDeductions;
+        record.totalAdditions = totalAdditions;
+        
+        const existingIndex = financialRecords.findIndex(r => r.employeeId === employeeId && r.month === month);
+        if (existingIndex !== -1) {
+            financialRecords[existingIndex] = record;
+        } else {
+            financialRecords.push(record);
+        }
+        
+        localStorage.setItem('financial', JSON.stringify(financialRecords));
+        this.reset();
+        loadFinancialRecords();
+        alert('تم حفظ المعاملات المالية بنجاح');
+    });
+
     // Real-time employee search
     document.getElementById('employeeSearch').addEventListener('input', function() {
         searchEmployees(this.value);
     });
-    
-    // Clear search button
+
+    // Clear employee search
     document.getElementById('searchEmployeeBtn').addEventListener('click', function(e) {
         e.preventDefault();
         document.getElementById('employeeSearch').value = '';
         searchEmployees('');
     });
-    
+
+    // Real-time attendance search
+    document.getElementById('dailyAttendanceSearch').addEventListener('input', function() {
+        searchDailyAttendance(this.value);
+    });
+
+    // Clear attendance search
+    document.getElementById('clearAttendanceSearch').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('dailyAttendanceSearch').value = '';
+        searchDailyAttendance('');
+    });
+
     // Load attendance for selected date
     document.getElementById('loadAttendanceBtn').addEventListener('click', function() {
         loadDailyAttendance();
     });
-    
+
     // Save daily attendance
     document.getElementById('saveAttendanceBtn').addEventListener('click', function() {
         saveDailyAttendance();
     });
-    
+
     // Generate report
     document.getElementById('generateReportBtn').addEventListener('click', function() {
         generateReport();
     });
-    
+
     // Initial data load
     loadEmployees();
     loadDailyAttendance();
 });
 
-// Search employees function
+// Employee Management Functions
 function searchEmployees(searchTerm) {
     const term = searchTerm.toLowerCase().trim();
     let filteredEmployees = employees;
@@ -113,15 +167,14 @@ function searchEmployees(searchTerm) {
         filteredEmployees = employees.filter(emp => 
             emp.name.toLowerCase().includes(term) ||
             emp.employeeId.toLowerCase().includes(term) ||
-            emp.department.toLowerCase().includes(term) ||
-            emp.totalSalary.toString().includes(term)
+            emp.department.toLowerCase().includes(term) 
+            // emp.totalSalary.toString().includes(term)
         );
     }
     
     displayEmployees(filteredEmployees);
 }
 
-// Display employees in table
 function displayEmployees(employeesToDisplay) {
     const employeesBody = document.getElementById('employeesBody');
     employeesBody.innerHTML = '';
@@ -140,6 +193,7 @@ function displayEmployees(employeesToDisplay) {
             <td>${emp.subscriptionSalary}</td>
             <td>${emp.inclusiveSalary}</td>
             <td>${emp.transfers}</td>
+            <td>${emp.insuranceMoney}</td>
             <td>${emp.totalSalary}</td>
             <td>
                 <button class="action-btn edit-btn" data-id="${emp.id}">تعديل</button>
@@ -149,18 +203,14 @@ function displayEmployees(employeesToDisplay) {
         employeesBody.appendChild(row);
     });
     
-    // Add event listeners to action buttons
     addEmployeeActionListeners();
 }
 
-// Load all employees
 function loadEmployees() {
     displayEmployees(employees);
 }
 
-// Add event listeners to employee action buttons
 function addEmployeeActionListeners() {
-    // Edit buttons
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -172,44 +222,59 @@ function addEmployeeActionListeners() {
                 document.getElementById('empSubscription').value = emp.subscriptionSalary;
                 document.getElementById('empInclusive').value = emp.inclusiveSalary;
                 document.getElementById('empTransfers').value = emp.transfers;
+                document.getElementById('insuranceMoney').value = emp.insuranceMoney;
                 currentEmployeeId = id;
-                
-                // Scroll to form
                 document.getElementById('employeeForm').scrollIntoView();
             }
         });
     });
     
-    // Delete buttons
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور الخاصة به أيضًا.')) {
+            if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
                 const id = this.dataset.id;
-                
-                // Delete employee
                 employees = employees.filter(emp => emp.id !== id);
-                
-                // Delete all attendance records for this employee
                 attendanceRecords = attendanceRecords.filter(record => record.employeeId !== id);
-                
-                // Update local storage
+                financialRecords = financialRecords.filter(record => record.employeeId !== id);
                 localStorage.setItem('employees', JSON.stringify(employees));
                 localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
-                
-                // Reload employees list
+                localStorage.setItem('financial', JSON.stringify(financialRecords));
                 const currentSearch = document.getElementById('employeeSearch').value;
                 searchEmployees(currentSearch);
-                
-                // If we're on the attendance tab, reload that too
                 if (document.getElementById('daily').classList.contains('active')) {
                     loadDailyAttendance();
+                }
+                if (document.getElementById('financial').classList.contains('active')) {
+                    loadFinancialRecords();
                 }
             }
         });
     });
 }
 
-// Load daily attendance
+// Attendance Management Functions
+function searchDailyAttendance(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const rows = document.querySelectorAll('#dailyAttendanceBody tr');
+
+    rows.forEach(row => {
+        const employeeId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        const employeeName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const department = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+
+        if (term === '' ||
+            employeeId.includes(term) ||
+            employeeName.includes(term) ||
+            department.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// ... (Previous code remains unchanged until loadDailyAttendance)
+
 function loadDailyAttendance() {
     const date = document.getElementById('attendanceDate').value;
     const dailyAttendanceBody = document.getElementById('dailyAttendanceBody');
@@ -226,13 +291,16 @@ function loadDailyAttendance() {
     }
 
     employees.forEach(emp => {
-        const record = attendanceRecords.find(r =>
-            r.employeeId === emp.id && r.date === date
-        );
-
+        const record = attendanceRecords.find(r => r.employeeId === emp.id && r.date === date);
         const isPresent = record?.status === 'present' || !record;
 
         const row = document.createElement('tr');
+        if (record) {
+            row.classList.add(record.status);
+        } else {
+            row.classList.add('unsaved', 'present');
+        }
+
         row.innerHTML = `
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
@@ -249,7 +317,7 @@ function loadDailyAttendance() {
             </td>
             <td>
                 <input type="number" class="extra-hours" data-employee="${emp.id}" 
-                       value="${record?.extraHours || 0}" min="0" max="16"> <!-- New field -->
+                       value="${record?.extraHours || 0}" min="0" max="16">
             </td>
             <td>
                 <input type="number" class="delay-minutes" data-employee="${emp.id}" 
@@ -264,95 +332,197 @@ function loadDailyAttendance() {
             </td>
         `;
 
-        if (record) {
-            row.classList.add(record.status);
-        }
-
         dailyAttendanceBody.appendChild(row);
 
-        // Add dynamic update for work hours
+        row.querySelectorAll('.attendance-status, .work-hours, .extra-hours, .delay-minutes, .notes').forEach(element => {
+            element.addEventListener('change', function() {
+                if (!row.classList.contains('unsaved')) {
+                    row.classList.add('unsaved');
+                }
+            });
+        });
+
         const attendanceStatus = row.querySelector(`.attendance-status[data-employee="${emp.id}"]`);
         const workHoursInput = row.querySelector(`.work-hours[data-employee="${emp.id}"]`);
 
         attendanceStatus.addEventListener('change', () => {
             workHoursInput.value = attendanceStatus.value === 'present' ? 8 : 0;
+            if (!row.classList.contains('unsaved')) {
+                row.classList.add('unsaved');
+            }
         });
-    });
 
-    document.querySelectorAll('.save-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        row.querySelector('.save-btn').addEventListener('click', function() {
             const employeeId = this.dataset.employee;
             saveEmployeeAttendance(employeeId);
+            updateRowStatus(row);
         });
     });
 }
-// Save attendance for a single employee
+
 function saveEmployeeAttendance(employeeId) {
     const date = document.getElementById('attendanceDate').value;
     const status = document.querySelector(`.attendance-status[data-employee="${employeeId}"]`).value;
     const workHours = document.querySelector(`.work-hours[data-employee="${employeeId}"]`).value;
-    const extraHours = document.querySelector(`.extra-hours[data-employee="${employeeId}"]`).value; // Extra hours
+    const extraHours = document.querySelector(`.extra-hours[data-employee="${employeeId}"]`).value;
     const delay = document.querySelector(`.delay-minutes[data-employee="${employeeId}"]`).value;
     const notes = document.querySelector(`.notes[data-employee="${employeeId}"]`).value;
 
-    // Set work hours and extra hours to 0 if absent
     const finalWorkHours = status === 'absent' ? 0 : parseInt(workHours);
     const finalExtraHours = status === 'absent' ? 0 : parseInt(extraHours);
 
-    // Find existing record
-    const existingIndex = attendanceRecords.findIndex(r =>
-        r.employeeId === employeeId && r.date === date
-    );
+    const existingIndex = attendanceRecords.findIndex(r => r.employeeId === employeeId && r.date === date);
 
     const record = {
         employeeId,
         date,
         status,
         workHours: finalWorkHours,
-        extraHours: finalExtraHours, // Save extra hours
+        extraHours: finalExtraHours,
         delay: parseInt(delay),
         notes,
         deduction: calculateDeduction(status, parseInt(delay))
     };
 
     if (existingIndex !== -1) {
-        // Update existing record
         attendanceRecords[existingIndex] = record;
     } else {
-        // Add new record
         attendanceRecords.push(record);
     }
 
-    // Update local storage
     localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
+}
 
-    // Update row styling
+function saveDailyAttendance() {
     const rows = document.querySelectorAll('#dailyAttendanceBody tr');
+    let unsavedCount = 0;
+
     rows.forEach(row => {
-        row.classList.remove('present', 'absent');
-        if (row.querySelector(`.attendance-status[data-employee="${employeeId}"]`)) {
-            row.classList.add(status);
+        if (row.classList.contains('unsaved')) {
+            const employeeId = row.querySelector('.save-btn').dataset.employee;
+            saveEmployeeAttendance(employeeId);
+            updateRowStatus(row);
+            unsavedCount++;
         }
     });
 
-    alert('تم حفظ بيانات الحضور بنجاح');
+    if (unsavedCount === 0) {
+        alert('جميع السجلات محفوظة بالفعل');
+    } else {
+        alert('تم حفظ حضور جميع الموظفين بنجاح');
+    }
 }
 
-// Save all attendance for the day
-function saveDailyAttendance() {
-    const employeeIds = employees.map(emp => emp.id);
-    employeeIds.forEach(id => saveEmployeeAttendance(id));
+function updateRowStatus(row) {
+    row.classList.remove('unsaved', 'present', 'absent');
+    const status = row.querySelector('.attendance-status').value;
+    row.classList.add(status);
 }
 
-// Calculate deduction based on status and delay
+// ... (Rest of the code remains unchanged)
+
 function calculateDeduction(status, delay) {
     if (status === 'absent') {
-        return 1; // 1 day salary deduction
+        return 1;
     }
     return 0;
 }
 
-// Load employee options for report
+// Financial Transactions Functions
+function loadFinancialEmployeeOptions() {
+    const select = document.getElementById('financialEmployee');
+    select.innerHTML = '<option value="">اختر الموظف</option>';
+    
+    employees.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.id;
+        option.textContent = `${emp.name} (${emp.employeeId})`;
+        select.appendChild(option);
+    });
+
+    // Update financial records when month or employee changes
+    document.getElementById('financialMonth').addEventListener('change', loadFinancialRecords);
+    document.getElementById('financialEmployee').addEventListener('change', loadFinancialRecords);
+}
+
+function loadFinancialRecords() {
+    const month = document.getElementById('financialMonth').value;
+    const employeeId = document.getElementById('financialEmployee').value;
+    const financialBody = document.getElementById('financialBody');
+    financialBody.innerHTML = '';
+
+    let filteredRecords = financialRecords;
+    if (month) {
+        filteredRecords = filteredRecords.filter(r => r.month === month);
+    }
+    if (employeeId) {
+        filteredRecords = filteredRecords.filter(r => r.employeeId === employeeId);
+    }
+
+    if (filteredRecords.length === 0) {
+        financialBody.innerHTML = '<tr><td colspan="11" style="text-align: center;">لا توجد معاملات مالية</td></tr>';
+        return;
+    }
+
+    filteredRecords.forEach(record => {
+        const emp = employees.find(e => e.id === record.employeeId);
+        if (!emp) return;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${emp.employeeId}</td>
+            <td>${emp.name}</td>
+            <td>${record.advance.toFixed(2)}</td>
+            <td>${record.deferredAdvance.toFixed(2)}</td>
+            <td>${record.penalty.toFixed(2)}</td>
+            <td>${record.bonus.toFixed(2)}</td>
+            <td>${record.regularityAllowance.toFixed(2)}</td>
+            <td>${record.totalDeductions.toFixed(2)}</td>
+            <td>${record.totalAdditions.toFixed(2)}</td>
+            <td>
+                <button class="action-btn edit-btn" data-id="${record.id}">تعديل</button>
+                <button class="action-btn delete-btn" data-id="${record.id}">حذف</button>
+            </td>
+        `;
+        financialBody.appendChild(row);
+    });
+
+    addFinancialActionListeners();
+}
+
+function addFinancialActionListeners() {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const record = financialRecords.find(r => r.id === id);
+            if (record) {
+                document.getElementById('financialMonth').value = record.month;
+                document.getElementById('financialEmployee').value = record.employeeId;
+                document.getElementById('advance').value = record.advance;
+                document.getElementById('deferredAdvance').value = record.deferredAdvance;
+                document.getElementById('penalty').value = record.penalty;
+                document.getElementById('bonus').value = record.bonus;
+                document.getElementById('regularityAllowance').value = record.regularityAllowance;
+                financialRecords = financialRecords.filter(r => r.id !== id);
+                localStorage.setItem('financial', JSON.stringify(financialRecords));
+                loadFinancialRecords();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('هل أنت متأكد من حذف هذه المعاملة المالية؟')) {
+                const id = this.dataset.id;
+                financialRecords = financialRecords.filter(r => r.id !== id);
+                localStorage.setItem('financial', JSON.stringify(financialRecords));
+                loadFinancialRecords();
+            }
+        });
+    });
+}
+
+// Report Generation Functions
 function loadEmployeeOptions() {
     const select = document.getElementById('reportEmployee');
     select.innerHTML = '<option value="">جميع الموظفين</option>';
@@ -364,15 +534,7 @@ function loadEmployeeOptions() {
         select.appendChild(option);
     });
 }
-function addDetailsButtonListeners(month) {
-    document.querySelectorAll('.details-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const empId = this.dataset.employee;
-            showEmployeeDetails(empId, month);
-        });
-    });
-}
-// Generate monthly report
+
 function generateReport() {
     const month = document.getElementById('reportMonth').value;
     const employeeId = document.getElementById('reportEmployee').value;
@@ -410,11 +572,18 @@ function generateReport() {
         reportBody.appendChild(row);
     });
 
-    // Add event listeners to details buttons
     addDetailsButtonListeners(month);
 }
 
-// Show detailed attendance for an employee
+function addDetailsButtonListeners(month) {
+    document.querySelectorAll('.details-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const empId = this.dataset.employee;
+            showEmployeeDetails(empId, month);
+        });
+    });
+}
+
 function showEmployeeDetails(employeeId, month) {
     const emp = employees.find(e => e.id === employeeId);
     if (!emp) return;
@@ -454,7 +623,7 @@ function showEmployeeDetails(employeeId, month) {
     document.getElementById('reportDetails').style.display = 'block';
     document.getElementById('reportDetails').scrollIntoView();
 }
-// Helper function to get status text
+
 function getStatusText(status) {
     const statusMap = {
         'present': 'حاضر',
@@ -464,7 +633,6 @@ function getStatusText(status) {
 }
 
 function calculateDailySalary(employee) {
-    // Daily salary components
     const dailySubscription = employee.subscriptionSalary / 30;
     const dailyInclusive = employee.inclusiveSalary / 30;
     
@@ -485,8 +653,7 @@ function calculateWorkedDays(employee, monthlyRecords) {
         }
     });
 
-    // Calculate extra days from overtime (every 8 extra hours = 1 day)
-    const extraDays = (totalExtraHours*1.5) / 8;
+    const extraDays = (totalExtraHours * 1.5) / 8;
     
     return {
         attendedDays,
@@ -496,13 +663,9 @@ function calculateWorkedDays(employee, monthlyRecords) {
 }
 
 function calculateSalaryComponents(employee, monthlyRecords) {
-    // Get daily rates
     const dailyRates = calculateDailySalary(employee);
-    
-    // Calculate worked days
     const daysData = calculateWorkedDays(employee, monthlyRecords);
     
-    // Calculate salary components
     const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
     
@@ -519,13 +682,11 @@ function generateSalaryReport(employeeId, month) {
     const employee = employees.find(e => e.id === employeeId);
     if (!employee) return null;
     
-    // Filter records for this month
     const monthlyRecords = attendanceRecords.filter(record => 
         record.employeeId === employeeId && 
         record.date.startsWith(month)
     );
     
-    // Calculate salary
     const salaryData = calculateSalaryComponents(employee, monthlyRecords);
     
     return {
@@ -547,22 +708,4 @@ function generateSalaryReport(employeeId, month) {
             "إجمالي الراتب": salaryData.totalSalary.toFixed(2)
         }
     };
-}
-
-function showSalaryDetails(employeeId, month) {
-    const report = generateSalaryReport(employeeId, month);
-    const detailsBody = document.getElementById('detailsBody');
-    detailsBody.innerHTML = '';
-
-    // Add salary breakdown
-    Object.entries(report.breakdown).forEach(([key, value]) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td colspan="2"><strong>${key}</strong></td>
-            <td>${value}</td>
-        `;
-        detailsBody.appendChild(row);
-    });
-
-    document.getElementById('reportDetails').style.display = 'block';
 }

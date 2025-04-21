@@ -1,69 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام حضور وانصراف الموظفين</title>
-    <style>
-        /* Add these new styles */
-        #dailyAttendanceBody tr.present {
-            background-color: rgba(200, 255, 200, 0.5);
-            /* Light green for saved present */
-        }
-
-        #dailyAttendanceBody tr.absent {
-            background-color: rgba(255, 200, 200, 0.5);
-            /* Light red for saved absent */
-        }
-
-        /* Unsaved changes */
-        #dailyAttendanceBody tr.unsaved {
-            background-color: rgba(240, 237, 89, 0.7) !important;
-            /* Warm and inviting, not too harsh */
-        }
-
-        #saveAttendanceBtn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        #saveAttendanceBtn:hover {
-            background-color: #45a049;
-        }
-
-        .attendance-search {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-
-        .attendance-search input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .attendance-search button {
-            padding: 8px 15px;
-            background-color: #f44336;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-    </style>
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
     <script>
         // Check authentication
@@ -71,23 +13,22 @@
             window.location.href = "login.html";
         }
 
-        // Add logout functionality (you can add a logout button somewhere in your UI)
+        // Logout functionality
         function logout() {
             sessionStorage.removeItem('isAuthenticated');
             window.location.href = "login.html";
         }
     </script>
-  
+
     <div class="container">
         <h1>نظام حضور وانصراف الموظفين</h1>
 
         <div class="tabs">
             <div class="tab active" data-tab="daily">الحضور اليومي</div>
-            <div class="tab" data-tab="employees">إدارة الموظفين</div>
+            <div class="tab" data-tab="employees"> البيانات الاساسية للموظفين</div>
+            <div class="tab" data-tab="financial">المعاملات المالية</div>
             <div class="tab" data-tab="reports">التقارير الشهرية</div>
-            <button onclick="logout()"
-                style="position: absolute; left: 20px; top: 20px; padding: 5px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">تسجيل
-                الخروج</button>
+            <button onclick="logout()" class="logout-btn">تسجيل الخروج</button>
         </div>
 
         <!-- Daily Attendance Tab -->
@@ -97,13 +38,10 @@
                 <input type="date" id="attendanceDate" value="">
                 <button id="loadAttendanceBtn" class="search-btn">تحميل الحضور</button>
             </div>
-
-            <!-- Add the real-time search for attendance -->
             <div class="attendance-search">
                 <input type="text" id="dailyAttendanceSearch" placeholder="ابحث بالموظف (اسم، رقم، قسم)">
                 <button id="clearAttendanceSearch">مسح البحث</button>
             </div>
-
             <div class="table-container">
                 <table id="dailyAttendanceTable">
                     <thead>
@@ -119,13 +57,13 @@
                             <th>إجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="dailyAttendanceBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                    <tbody id="dailyAttendanceBody"></tbody>
                 </table>
             </div>
-
-            <button id="saveAttendanceBtn" class="submit-btn">حفظ الحضور اليومي</button>
+            <div class="xSave">
+                <button id="saveAttendanceBtn" class="submit-btn">حفظ الحضور اليومي</button>
+            </div>
+            
         </div>
 
         <!-- Employees Management Tab -->
@@ -135,7 +73,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="empId">رقم الموظف</label>
-                        <input type="text" id="empId" name="empId" required>
+                        <input type="number" id="empId" name="empId" required>
                     </div>
                     <div class="form-group">
                         <label for="empName">اسم الموظف</label>
@@ -145,37 +83,44 @@
                         <label for="empDepartment">القسم</label>
                         <select id="empDepartment" name="empDepartment" required>
                             <option value="">اختر القسم</option>
-                            <option value="الإدارة">الإدارة</option>
-                            <option value="المكابس">المكابس</option>
-                            <option value="التجميع">التجميع</option>
-                            <option value="الفرن">الفرن</option>
-                            <option value="المخزن">المخزن</option>
+                            <option value="ادارة">ادارة</option>
+                            <option value="مكابس">مكابس</option>
+                            <option value="مقصات">مقصات</option>
+                            <option value="تجميع">تجميع</option>
+                            <option value="فرن">فرن</option>
+                            <option value="خدمات">خدمات</option>
+                            <option value="مخزن">مخزن</option>
                         </select>
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="empSalary">الراتب الاساسى</label>
+                        <label for="empSubscription">الراتب الأساسي</label>
                         <input type="number" id="empSubscription" name="empSubscription" required>
                     </div>
                     <div class="form-group">
-                        <label for="empSalary"> الراتب المتغير</label>
+                        <label for="empInclusive">الراتب المتغير</label>
                         <input type="number" id="empInclusive" name="empInclusive" required>
                     </div>
                     <div class="form-group">
-                        <label for="empSalary">بدل انتقالات</label>
+                        <label for="empTransfers">بدل انتقالات</label>
                         <input type="number" id="empTransfers" name="empTransfers">
+                        
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceMoney">مبلغ التأمين</label>
+                        <input type="number" id="insuranceMoney" name="insuranceMoney">
                     </div>
                 </div>
-                <button type="submit" class="submit-btn">حفظ بيانات الموظف</button>
+                <div class="xSave">
+                    <button type="submit" class="submit-btn">حفظ بيانات الموظف</button>
+                </div>
+              
             </form>
-
             <div class="search-container">
                 <input type="text" id="employeeSearch" placeholder="ابحث باسم الموظف أو رقمه أو قسمه...">
                 <button id="searchEmployeeBtn" class="search-btn">مسح البحث</button>
             </div>
-
             <div class="table-container">
                 <table id="employeesTable">
                     <thead>
@@ -183,16 +128,84 @@
                             <th>رقم الموظف</th>
                             <th>اسم الموظف</th>
                             <th>القسم</th>
-                            <th> الراتب الاساسى</th>
-                            <th> الراتب المتغير</th>
+                            <th>الراتب الأساسي</th>
+                            <th>الراتب المتغير</th>
                             <th>بدل انتقالات</th>
-                            <th>اجمالى الراتب</th>
+                            <th>التأمين </th>
+                            <th>إجمالي الراتب</th>
                             <th>إجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="employeesBody">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
+                    <tbody id="employeesBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Financial Transactions Tab -->
+        <div id="financial" class="tab-content">
+            <h2>المعاملات المالية</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="financialMonth">اختر الشهر</label>
+                    <input type="month" id="financialMonth" name="financialMonth" required>
+                </div>
+                <div class="form-group">
+                    <label for="financialEmployee">اختر الموظف</label>
+                    <select id="financialEmployee" name="financialEmployee" required>
+                        <option value="">اختر الموظف</option>
+                    </select>
+                </div>
+            </div>
+            <form id="financialForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="advance">السلفة</label>
+                        <input type="number" id="advance" name="advance" min="0" value="0">
+                    </div>
+                    <!-- <div class="form-group">
+                        <label for="insurance">التأمين</label>
+                        <input type="number" id="insurance" name="insurance" min="0" value="0">
+                    </div> -->
+                    <div class="form-group">
+                        <label for="deferredAdvance">سلفة مؤجلة</label>
+                        <input type="number" id="deferredAdvance" name="deferredAdvance" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="penalty">جزاء</label>
+                        <input type="number" id="penalty" name="penalty" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="bonus">مكافأة</label>
+                        <input type="number" id="bonus" name="bonus" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="regularityAllowance">بدل انتظام</label>
+                        <input type="number" id="regularityAllowance" name="regularityAllowance" min="0" value="0">
+                    </div>
+                </div>
+                <!-- <div class="form-row">
+            
+                </div> -->
+                <button type="submit" class="submit-btn">حفظ المعاملات المالية</button>
+            </form>
+            <div class="table-container" style="margin-top: 30px;">
+                <table id="financialTable">
+                    <thead>
+                        <tr>
+                            <th>رقم الموظف</th>
+                            <th>اسم الموظف</th>
+                            <th>السلفة</th>
+                            <!-- <th>التأمين</th> -->
+                            <th>سلفة مؤجلة</th>
+                            <th>جزاء</th>
+                            <th>مكافأة</th>
+                            <th>بدل انتظام</th>
+                            <th>إجمالي الخصومات</th>
+                            <th>إجمالي الإضافات</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financialBody"></tbody>
                 </table>
             </div>
         </div>
@@ -200,7 +213,6 @@
         <!-- Reports Tab -->
         <div id="reports" class="tab-content">
             <h2>التقارير الشهرية</h2>
-
             <div class="form-row">
                 <div class="form-group">
                     <label for="reportMonth">اختر الشهر</label>
@@ -210,13 +222,10 @@
                     <label for="reportEmployee">اختر الموظف (اختياري)</label>
                     <select id="reportEmployee" name="reportEmployee">
                         <option value="">جميع الموظفين</option>
-                        <!-- Employee options will be added by JavaScript -->
                     </select>
                 </div>
             </div>
-
             <button id="generateReportBtn" class="report-btn">إنشاء التقرير</button>
-
             <div class="table-container" style="margin-top: 30px;">
                 <table id="reportTable">
                     <thead>
@@ -227,7 +236,7 @@
                             <th>أيام الحضور</th>
                             <th>أيام الإضافي</th>
                             <th>إجمالي الأيام</th>
-                            <th>الراتب الاساسى</th>
+                            <th>الراتب الأساسي</th>
                             <th>الراتب المتغير</th>
                             <th>بدل انتقالات</th>
                             <th>الإجمالي</th>
@@ -237,7 +246,6 @@
                     <tbody id="reportBody"></tbody>
                 </table>
             </div>
-
             <div id="reportDetails" style="margin-top: 30px; display: none;">
                 <h3>تفاصيل الحضور</h3>
                 <div class="table-container">
@@ -254,9 +262,7 @@
                                 <th>ملاحظات</th>
                             </tr>
                         </thead>
-                        <tbody id="detailsBody">
-                            <!-- Details data will be inserted here by JavaScript -->
-                        </tbody>
+                        <tbody id="detailsBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -264,246 +270,5 @@
     </div>
 
     <script src="js/script.js"></script>
-    <script>
-        // Add these new functions to your existing JavaScript
-        document.addEventListener('DOMContentLoaded', function () {
-            // Existing code...
-
-            // Add the new event listeners for attendance search
-            document.getElementById('dailyAttendanceSearch').addEventListener('input', function () {
-                searchDailyAttendance(this.value);
-            });
-
-            document.getElementById('clearAttendanceSearch').addEventListener('click', function (e) {
-                e.preventDefault();
-                document.getElementById('dailyAttendanceSearch').value = '';
-                searchDailyAttendance('');
-            });
-        });
-
-        function searchDailyAttendance(searchTerm) {
-            const term = searchTerm.toLowerCase().trim();
-            const rows = document.querySelectorAll('#dailyAttendanceBody tr');
-
-            rows.forEach(row => {
-                const employeeId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-                const employeeName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const department = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-
-                if (term === '' ||
-                    employeeId.includes(term) ||
-                    employeeName.includes(term) ||
-                    department.includes(term)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        }
-
-        // Modify your loadDailyAttendance function to add unsaved class
-        function loadDailyAttendance() {
-            const date = document.getElementById('attendanceDate').value;
-            const dailyAttendanceBody = document.getElementById('dailyAttendanceBody');
-            dailyAttendanceBody.innerHTML = '';
-
-            if (!date) {
-                alert('الرجاء اختيار تاريخ');
-                return;
-            }
-
-            if (employees.length === 0) {
-                dailyAttendanceBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
-                return;
-            }
-
-            employees.forEach(emp => {
-                const record = attendanceRecords.find(r =>
-                    r.employeeId === emp.id && r.date === date
-                );
-
-                const isPresent = record?.status === 'present' || !record;
-
-                const row = document.createElement('tr');
-
-                // Set initial class based on record status
-                if (record) {
-                    row.classList.add(record.status); // 'present' or 'absent'
-                } else {
-                    row.classList.add('unsaved', 'present'); // New records are unsaved by default
-                }
-
-                row.innerHTML = `
-            <td>${emp.employeeId}</td>
-            <td>${emp.name}</td>
-            <td>${emp.department}</td>
-            <td>
-                <select class="attendance-status" data-employee="${emp.id}">
-                    <option value="present" ${isPresent ? 'selected' : ''}>حاضر</option>
-                    <option value="absent" ${record?.status === 'absent' ? 'selected' : ''}>غائب</option>
-                </select>
-            </td>
-            <td>
-                <input type="number" class="work-hours" data-employee="${emp.id}" 
-                       value="${isPresent ? (record?.workHours || 8) : 0}" min="0" max="12">
-            </td>
-            <td>
-                <input type="number" class="extra-hours" data-employee="${emp.id}" 
-                       value="${record?.extraHours || 0}" min="0" max="16">
-            </td>
-            <td>
-                <input type="number" class="delay-minutes" data-employee="${emp.id}" 
-                       value="${record?.delay || 0}" min="0">
-            </td>
-            <td>
-                <input type="text" class="notes" data-employee="${emp.id}" 
-                       value="${record?.notes || ''}">
-            </td>
-            <td>
-                <button class="action-btn save-btn" data-employee="${emp.id}">حفظ</button>
-            </td>
-        `;
-
-                dailyAttendanceBody.appendChild(row);
-
-                // Add change detection for unsaved records
-                row.querySelectorAll('.attendance-status, .work-hours, .extra-hours, .delay-minutes, .notes').forEach(element => {
-                    element.addEventListener('change', function () {
-                        if (!row.classList.contains('unsaved')) {
-                            row.classList.add('unsaved');
-                            // Highlight the row when changed
-                            row.style.backgroundColor = 'rgba(255, 150, 150, 0.5)';
-                        }
-                    });
-                });
-
-                // Dynamic update for work hours
-                const attendanceStatus = row.querySelector(`.attendance-status[data-employee="${emp.id}"]`);
-                const workHoursInput = row.querySelector(`.work-hours[data-employee="${emp.id}"]`);
-
-                attendanceStatus.addEventListener('change', () => {
-                    workHoursInput.value = attendanceStatus.value === 'present' ? 8 : 0;
-                    if (!row.classList.contains('unsaved')) {
-                        row.classList.add('unsaved');
-                        row.style.backgroundColor = 'rgba(255, 150, 150, 0.5)';
-                    }
-                });
-
-                // Add save button event listener
-                row.querySelector('.save-btn').addEventListener('click', function () {
-                    const employeeId = this.dataset.employee;
-                    saveEmployeeAttendance(employeeId);
-
-                    // Update row styling after save
-                    const status = row.querySelector('.attendance-status').value;
-                    row.classList.remove('unsaved');
-                    row.classList.remove('present', 'absent');
-                    row.classList.add(status);
-                    row.style.backgroundColor = ''; // Reset highlight
-
-                    // Visual feedback
-                    row.style.transition = 'background-color 0.5s ease';
-                    row.style.backgroundColor = status === 'present'
-                        ? 'rgba(200, 255, 200, 0.3)'
-                        : 'rgba(255, 200, 200, 0.3)';
-
-                    setTimeout(() => {
-                        row.style.transition = '';
-                        row.style.backgroundColor = '';
-                    }, 500);
-                });
-            });
-        }
-        function saveEmployeeAttendance(employeeId) {
-            const date = document.getElementById('attendanceDate').value;
-            const status = document.querySelector(`.attendance-status[data-employee="${employeeId}"]`).value;
-            const workHours = document.querySelector(`.work-hours[data-employee="${employeeId}"]`).value;
-            const extraHours = document.querySelector(`.extra-hours[data-employee="${employeeId}"]`).value;
-            const delay = document.querySelector(`.delay-minutes[data-employee="${employeeId}"]`).value;
-            const notes = document.querySelector(`.notes[data-employee="${employeeId}"]`).value;
-
-            // Set work hours and extra hours to 0 if absent
-            const finalWorkHours = status === 'absent' ? 0 : parseInt(workHours);
-            const finalExtraHours = status === 'absent' ? 0 : parseInt(extraHours);
-
-            // Find existing record
-            const existingIndex = attendanceRecords.findIndex(r =>
-                r.employeeId === employeeId && r.date === date
-            );
-
-            const record = {
-                employeeId,
-                date,
-                status,
-                workHours: finalWorkHours,
-                extraHours: finalExtraHours,
-                delay: parseInt(delay),
-                notes,
-                deduction: calculateDeduction(status, parseInt(delay))
-            };
-
-            if (existingIndex !== -1) {
-                // Update existing record
-                attendanceRecords[existingIndex] = record;
-            } else {
-                // Add new record
-                attendanceRecords.push(record);
-            }
-
-            // Update local storage
-            localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
-
-            // Get the row and update its styling
-            const row = document.querySelector(`.save-btn[data-employee="${employeeId}"]`).closest('tr');
-            updateRowStatus(row);
-
-            return row; // Return the row for additional handling if needed
-        }
-
-        function updateRowStatus(row) {
-            // Remove unsaved class and previous status classes
-            row.classList.remove('unsaved', 'present', 'absent');
-
-            // Add the current status class
-            const status = row.querySelector('.attendance-status').value;
-            row.classList.add(status);
-
-            // Visual feedback that record was saved
-            row.style.transition = 'background-color 0.5s ease';
-            row.style.backgroundColor = status === 'present' ? 'rgba(200, 255, 200, 0.3)' : 'rgba(255, 200, 200, 0.3)';
-
-            // Reset transition after animation completes
-            setTimeout(() => {
-                row.style.transition = '';
-                row.style.backgroundColor = '';
-            }, 500);
-        }
-
-        function saveDailyAttendance() {
-            const rows = document.querySelectorAll('#dailyAttendanceBody tr');
-            let allSaved = true;
-
-            rows.forEach(row => {
-                const employeeId = row.querySelector('.save-btn').dataset.employee;
-                const savedRow = saveEmployeeAttendance(employeeId);
-
-                // Check if any row was unsaved before saving
-                if (row.classList.contains('unsaved')) {
-                    allSaved = false;
-                }
-
-                // Update the row status
-                updateRowStatus(savedRow);
-            });
-
-            if (allSaved) {
-                alert('جميع السجلات محفوظة بالفعل');
-            } else {
-                alert('تم حفظ حضور جميع الموظفين بنجاح');
-            }
-        }
-
-    </script>
 </body>
-
 </html>
