@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
+<head>
+    <!-- Other head content -->
+
+</head>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <title>نظام حضور وانصراف الموظفين</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <script>
         // Check authentication
@@ -63,7 +71,6 @@
             <div class="xSave">
                 <button id="saveAttendanceBtn" class="submit-btn">حفظ الحضور اليومي</button>
             </div>
-            
         </div>
 
         <!-- Employees Management Tab -->
@@ -96,16 +103,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="empSubscription">الراتب الأساسي</label>
-                        <input type="number" id="empSubscription" name="empSubscription" required>
+                        <input type="number" id="empSubscription" name="empSubscription" >
                     </div>
                     <div class="form-group">
                         <label for="empInclusive">الراتب المتغير</label>
-                        <input type="number" id="empInclusive" name="empInclusive" required>
+                        <input type="number" id="empInclusive" name="empInclusive" >
                     </div>
                     <div class="form-group">
                         <label for="empTransfers">بدل انتقالات</label>
                         <input type="number" id="empTransfers" name="empTransfers">
-                        
                     </div>
                     <div class="form-group">
                         <label for="insuranceMoney">مبلغ التأمين</label>
@@ -115,7 +121,6 @@
                 <div class="xSave">
                     <button type="submit" class="submit-btn">حفظ بيانات الموظف</button>
                 </div>
-              
             </form>
             <div class="search-container">
                 <input type="text" id="employeeSearch" placeholder="ابحث باسم الموظف أو رقمه أو قسمه...">
@@ -162,10 +167,6 @@
                         <label for="advance">السلفة</label>
                         <input type="number" id="advance" name="advance" min="0" value="0">
                     </div>
-                    <!-- <div class="form-group">
-                        <label for="insurance">التأمين</label>
-                        <input type="number" id="insurance" name="insurance" min="0" value="0">
-                    </div> -->
                     <div class="form-group">
                         <label for="deferredAdvance">سلفة مؤجلة</label>
                         <input type="number" id="deferredAdvance" name="deferredAdvance" min="0" value="0">
@@ -183,10 +184,10 @@
                         <input type="number" id="regularityAllowance" name="regularityAllowance" min="0" value="0">
                     </div>
                 </div>
-                <!-- <div class="form-row">
-            
-                </div> -->
-                <button type="submit" class="submit-btn">حفظ المعاملات المالية</button>
+                <div class="xSave">
+                    <button type="submit" class="submit-btn">حفظ المعاملات المالية</button>
+                </div>
+
             </form>
             <div class="table-container" style="margin-top: 30px;">
                 <table id="financialTable">
@@ -195,7 +196,6 @@
                             <th>رقم الموظف</th>
                             <th>اسم الموظف</th>
                             <th>السلفة</th>
-                            <!-- <th>التأمين</th> -->
                             <th>سلفة مؤجلة</th>
                             <th>جزاء</th>
                             <th>مكافأة</th>
@@ -239,7 +239,9 @@
                             <th>الراتب الأساسي</th>
                             <th>الراتب المتغير</th>
                             <th>بدل انتقالات</th>
-                            <th>الإجمالي</th>
+                            <th>إجمالي الخصومات</th>
+                            <th>إجمالي الإضافات</th>
+                            <th>صافي الراتب</th>
                             <th>تفاصيل</th>
                         </tr>
                     </thead>
@@ -271,4 +273,5 @@
 
     <script src="js/script.js"></script>
 </body>
+
 </html>

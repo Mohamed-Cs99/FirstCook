@@ -168,7 +168,6 @@ function searchEmployees(searchTerm) {
             emp.name.toLowerCase().includes(term) ||
             emp.employeeId.toLowerCase().includes(term) ||
             emp.department.toLowerCase().includes(term) 
-            // emp.totalSalary.toString().includes(term)
         );
     }
     
@@ -272,8 +271,6 @@ function searchDailyAttendance(searchTerm) {
         }
     });
 }
-
-// ... (Previous code remains unchanged until loadDailyAttendance)
 
 function loadDailyAttendance() {
     const date = document.getElementById('attendanceDate').value;
@@ -418,8 +415,6 @@ function updateRowStatus(row) {
     const status = row.querySelector('.attendance-status').value;
     row.classList.add(status);
 }
-
-// ... (Rest of the code remains unchanged)
 
 function calculateDeduction(status, delay) {
     if (status === 'absent') {
@@ -566,7 +561,9 @@ function generateReport() {
             <td>${report.initialSalary.toFixed(2)}</td>
             <td>${report.inclusiveSalary.toFixed(2)}</td>
             <td>${emp.transfers.toFixed(2)}</td>
-            <td>${report.totalSalary.toFixed(2)}</td>
+            <td>${report.totalDeductions.toFixed(2)}</td>
+            <td>${report.totalAdditions.toFixed(2)}</td>
+            <td>${report.netSalary.toFixed(2)}</td>
             <td><button class="action-btn details-btn" data-employee="${emp.id}">عرض التفاصيل</button></td>
         `;
         reportBody.appendChild(row);
@@ -598,6 +595,10 @@ function showEmployeeDetails(employeeId, month) {
         record.date <= endDate
     ).sort((a, b) => a.date.localeCompare(b.date));
 
+    const financialRecord = financialRecords.find(record => 
+        record.employeeId === employeeId && record.month === month
+    );
+
     const detailsBody = document.getElementById('detailsBody');
     detailsBody.innerHTML = '';
 
@@ -619,6 +620,24 @@ function showEmployeeDetails(employeeId, month) {
         `;
         detailsBody.appendChild(row);
     });
+
+    // Add financial details if available
+    if (financialRecord) {
+        const financialRow = document.createElement('tr');
+        financialRow.innerHTML = `
+            <td colspan="8">
+                <strong>التفاصيل المالية:</strong><br>
+                السلفة: ${financialRecord.advance.toFixed(2)}<br>
+                سلفة مؤجلة: ${financialRecord.deferredAdvance.toFixed(2)}<br>
+                جزاء: ${financialRecord.penalty.toFixed(2)}<br>
+                مكافأة: ${financialRecord.bonus.toFixed(2)}<br>
+                بدل انتظام: ${financialRecord.regularityAllowance.toFixed(2)}<br>
+                إجمالي الخصومات: ${financialRecord.totalDeductions.toFixed(2)}<br>
+                إجمالي الإضافات: ${financialRecord.totalAdditions.toFixed(2)}
+            </td>
+        `;
+        detailsBody.appendChild(financialRow);
+    }
 
     document.getElementById('reportDetails').style.display = 'block';
     document.getElementById('reportDetails').scrollIntoView();
@@ -662,19 +681,44 @@ function calculateWorkedDays(employee, monthlyRecords) {
     };
 }
 
-function calculateSalaryComponents(employee, monthlyRecords) {
+function calculateFinancialComponents(employeeId, month) {
+    const financialRecord = financialRecords.find(record => 
+        record.employeeId === employeeId && record.month === month
+    );
+
+    return {
+        totalDeductions: financialRecord ? financialRecord.totalDeductions : 0,
+        totalAdditions: financialRecord ? financialRecord.totalAdditions : 0,
+        financialDetails: financialRecord ? {
+            advance: financialRecord.advance,
+            deferredAdvance: financialRecord.deferredAdvance,
+            penalty: financialRecord.penalty,
+            bonus: financialRecord.bonus,
+            regularityAllowance: financialRecord.regularityAllowance
+        } : null
+    };
+}
+
+function calculateSalaryComponents(employee, monthlyRecords, month) {
     const dailyRates = calculateDailySalary(employee);
     const daysData = calculateWorkedDays(employee, monthlyRecords);
+    const financialData = calculateFinancialComponents(employee.id, month);
     
     const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
+    const baseSalary = initialSalary + inclusiveSalary + employee.transfers - employee.insuranceMoney;
+    
+    const netSalary = baseSalary - financialData.totalDeductions + financialData.totalAdditions;
     
     return {
         dailyRates,
         daysData,
         initialSalary,
         inclusiveSalary,
-        totalSalary: initialSalary + inclusiveSalary + employee.transfers
+        totalDeductions: financialData.totalDeductions,
+        totalAdditions: financialData.totalAdditions,
+        netSalary,
+        financialDetails: financialData.financialDetails
     };
 }
 
@@ -687,7 +731,7 @@ function generateSalaryReport(employeeId, month) {
         record.date.startsWith(month)
     );
     
-    const salaryData = calculateSalaryComponents(employee, monthlyRecords);
+    const salaryData = calculateSalaryComponents(employee, monthlyRecords, month);
     
     return {
         employeeId: employee.employeeId,
@@ -696,6 +740,7 @@ function generateSalaryReport(employeeId, month) {
         month,
         ...salaryData,
         transfers: employee.transfers,
+        insuranceMoney: employee.insuranceMoney,
         breakdown: {
             "أجر الاشتراك اليومي": salaryData.dailyRates.dailySubscription.toFixed(2),
             "أجر الشامل اليومي": salaryData.dailyRates.dailyInclusive.toFixed(2),
@@ -705,7 +750,17 @@ function generateSalaryReport(employeeId, month) {
             "الراتب الأولي (اشتراك)": salaryData.initialSalary.toFixed(2),
             "الراتب الشامل": salaryData.inclusiveSalary.toFixed(2),
             "بدل الانتقالات": employee.transfers.toFixed(2),
-            "إجمالي الراتب": salaryData.totalSalary.toFixed(2)
+            "التأمين": employee.insuranceMoney.toFixed(2),
+            "إجمالي الخصومات": salaryData.totalDeductions.toFixed(2),
+            "إجمالي الإضافات": salaryData.totalAdditions.toFixed(2),
+            "صافي الراتب": salaryData.netSalary.toFixed(2),
+            ...(salaryData.financialDetails ? {
+                "السلفة": salaryData.financialDetails.advance.toFixed(2),
+                "سلفة مؤجلة": salaryData.financialDetails.deferredAdvance.toFixed(2),
+                "جزاء": salaryData.financialDetails.penalty.toFixed(2),
+                "مكافأة": salaryData.financialDetails.bonus.toFixed(2),
+                "بدل انتظام": salaryData.financialDetails.regularityAllowance.toFixed(2)
+            } : {})
         }
     };
 }

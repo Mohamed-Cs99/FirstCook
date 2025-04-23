@@ -189,11 +189,11 @@ tr:nth-child(even) {
 }
 
 .present {
-    background-color: #b3e7b3 !important; /* Light green for saved present */
+    background-color: #d5ffd5 !important; /* Light green for saved present */
 }
 
 .absent {
-    background-color: #f7c6c6 !important; /* Light red for saved absent */
+    background-color: #fdcfcf !important; /* Light red for saved absent */
 }
 
 .unsaved {
@@ -265,3 +265,4 @@ tr:nth-child(even) {
         padding: 10px 5px;
     }
 }
+
