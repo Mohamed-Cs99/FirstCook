@@ -4,24 +4,30 @@ let financialRecords = JSON.parse(localStorage.getItem('financial')) || [];
 let currentEmployeeId = null;
 
 // Initialize the app
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Set today's date in attendance date picker
     document.getElementById('attendanceDate').valueAsDate = new Date();
-    
-    // Set current month in report and financial month pickers
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    document.getElementById('reportMonth').value = currentMonth;
-    document.getElementById('financialMonth').value = currentMonth;
 
+    // Set current month range in report and financial date pickers
+    // Get today's date
+    // Get today's date
+    // Set current month range in report and financial date pickers
+const today = new Date();
+const firstDay = new Date(today.getFullYear(), today.getMonth(), 1-2).toISOString().slice(0, 10);
+const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0-1).toISOString().slice(0, 10);
+document.getElementById('reportFromDate').value = firstDay;
+document.getElementById('reportToDate').value = lastDay;
+document.getElementById('financialFromDate').value = firstDay;
+document.getElementById('financialToDate').value = lastDay;   
     // Tab switching functionality
     document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
+
             this.classList.add('active');
             document.getElementById(this.dataset.tab).classList.add('active');
-            
+
             // Load appropriate data when switching tabs
             if (this.dataset.tab === 'employees') {
                 loadEmployees();
@@ -35,15 +41,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Employee form submission
-    document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    document.getElementById('employeeForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const subscriptionSalary = parseFloat(document.getElementById('empSubscription').value) || 0;
         const inclusiveSalary = parseFloat(document.getElementById('empInclusive').value) || 0;
         const transfers = parseFloat(document.getElementById('empTransfers').value) || 0;
         const insuranceMoney = parseFloat(document.getElementById('insuranceMoney').value) || 0;
-        const totalSalary = (subscriptionSalary + inclusiveSalary + transfers)-insuranceMoney;
-        
+        const totalSalary = (subscriptionSalary + inclusiveSalary + transfers) - insuranceMoney;
+
         const employee = {
             id: currentEmployeeId || Date.now().toString(),
             name: document.getElementById('empName').value,
@@ -55,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
             insuranceMoney,
             totalSalary
         };
-        
+
         if (currentEmployeeId) {
             const index = employees.findIndex(emp => emp.id === currentEmployeeId);
             if (index !== -1) {
@@ -65,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             employees.push(employee);
         }
-        
+
         localStorage.setItem('employees', JSON.stringify(employees));
         this.reset();
         document.getElementById('empTransfers').value = '0';
@@ -74,40 +80,51 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Financial form submission
-    document.getElementById('financialForm').addEventListener('submit', function(e) {
+    document.getElementById('financialForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
-        const month = document.getElementById('financialMonth').value;
+
+        const fromDate = document.getElementById('financialFromDate').value;
+        const toDate = document.getElementById('financialToDate').value;
         const employeeId = document.getElementById('financialEmployee').value;
-        
-        if (!month || !employeeId) {
-            alert('الرجاء اختيار الشهر والموظف');
+
+        if (!fromDate || !toDate || !employeeId) {
+            alert('الرجاء اختيار الفترة والموظف');
             return;
         }
-        
+
+        if (new Date(fromDate) > new Date(toDate)) {
+            alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+            return;
+        }
+
         const record = {
             id: Date.now().toString(),
             employeeId,
-            month,
+            fromDate,
+            toDate,
             advance: parseFloat(document.getElementById('advance').value) || 0,
             deferredAdvance: parseFloat(document.getElementById('deferredAdvance').value) || 0,
             penalty: parseFloat(document.getElementById('penalty').value) || 0,
             bonus: parseFloat(document.getElementById('bonus').value) || 0,
             regularityAllowance: parseFloat(document.getElementById('regularityAllowance').value) || 0
         };
-        
+
         const totalDeductions = record.advance + record.deferredAdvance + record.penalty;
         const totalAdditions = record.bonus + record.regularityAllowance;
         record.totalDeductions = totalDeductions;
         record.totalAdditions = totalAdditions;
-        
-        const existingIndex = financialRecords.findIndex(r => r.employeeId === employeeId && r.month === month);
+
+        const existingIndex = financialRecords.findIndex(r =>
+            r.employeeId === employeeId &&
+            r.fromDate === fromDate &&
+            r.toDate === toDate
+        );
         if (existingIndex !== -1) {
             financialRecords[existingIndex] = record;
         } else {
             financialRecords.push(record);
         }
-        
+
         localStorage.setItem('financial', JSON.stringify(financialRecords));
         this.reset();
         loadFinancialRecords();
@@ -115,41 +132,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Real-time employee search
-    document.getElementById('employeeSearch').addEventListener('input', function() {
+    document.getElementById('employeeSearch').addEventListener('input', function () {
         searchEmployees(this.value);
     });
 
     // Clear employee search
-    document.getElementById('searchEmployeeBtn').addEventListener('click', function(e) {
+    document.getElementById('searchEmployeeBtn').addEventListener('click', function (e) {
         e.preventDefault();
         document.getElementById('employeeSearch').value = '';
         searchEmployees('');
     });
 
     // Real-time attendance search
-    document.getElementById('dailyAttendanceSearch').addEventListener('input', function() {
+    document.getElementById('dailyAttendanceSearch').addEventListener('input', function () {
         searchDailyAttendance(this.value);
     });
 
     // Clear attendance search
-    document.getElementById('clearAttendanceSearch').addEventListener('click', function(e) {
+    document.getElementById('clearAttendanceSearch').addEventListener('click', function (e) {
         e.preventDefault();
         document.getElementById('dailyAttendanceSearch').value = '';
         searchDailyAttendance('');
     });
 
     // Load attendance for selected date
-    document.getElementById('loadAttendanceBtn').addEventListener('click', function() {
+    document.getElementById('loadAttendanceBtn').addEventListener('click', function () {
         loadDailyAttendance();
     });
 
     // Save daily attendance
-    document.getElementById('saveAttendanceBtn').addEventListener('click', function() {
+    document.getElementById('saveAttendanceBtn').addEventListener('click', function () {
         saveDailyAttendance();
     });
 
     // Generate report
-    document.getElementById('generateReportBtn').addEventListener('click', function() {
+    document.getElementById('generateReportBtn').addEventListener('click', function () {
         generateReport();
     });
 
@@ -162,27 +179,27 @@ document.addEventListener('DOMContentLoaded', function() {
 function searchEmployees(searchTerm) {
     const term = searchTerm.toLowerCase().trim();
     let filteredEmployees = employees;
-    
+
     if (term) {
-        filteredEmployees = employees.filter(emp => 
+        filteredEmployees = employees.filter(emp =>
             emp.name.toLowerCase().includes(term) ||
             emp.employeeId.toLowerCase().includes(term) ||
-            emp.department.toLowerCase().includes(term) 
+            emp.department.toLowerCase().includes(term)
         );
     }
-    
+
     displayEmployees(filteredEmployees);
 }
 
 function displayEmployees(employeesToDisplay) {
     const employeesBody = document.getElementById('employeesBody');
     employeesBody.innerHTML = '';
-    
+
     if (employeesToDisplay.length === 0) {
         employeesBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
         return;
     }
-    
+
     employeesToDisplay.forEach(emp => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -201,7 +218,7 @@ function displayEmployees(employeesToDisplay) {
         `;
         employeesBody.appendChild(row);
     });
-    
+
     addEmployeeActionListeners();
 }
 
@@ -211,7 +228,7 @@ function loadEmployees() {
 
 function addEmployeeActionListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const id = this.dataset.id;
             const emp = employees.find(e => e.id === id);
             if (emp) {
@@ -227,9 +244,9 @@ function addEmployeeActionListeners() {
             }
         });
     });
-    
+
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
                 const id = this.dataset.id;
                 employees = employees.filter(emp => emp.id !== id);
@@ -332,7 +349,7 @@ function loadDailyAttendance() {
         dailyAttendanceBody.appendChild(row);
 
         row.querySelectorAll('.attendance-status, .work-hours, .extra-hours, .delay-minutes, .notes').forEach(element => {
-            element.addEventListener('change', function() {
+            element.addEventListener('change', function () {
                 if (!row.classList.contains('unsaved')) {
                     row.classList.add('unsaved');
                 }
@@ -349,7 +366,7 @@ function loadDailyAttendance() {
             }
         });
 
-        row.querySelector('.save-btn').addEventListener('click', function() {
+        row.querySelector('.save-btn').addEventListener('click', function () {
             const employeeId = this.dataset.employee;
             saveEmployeeAttendance(employeeId);
             updateRowStatus(row);
@@ -395,14 +412,23 @@ function saveDailyAttendance() {
     let unsavedCount = 0;
 
     rows.forEach(row => {
+        // Correcting the reference to 'classList'
         if (row.classList.contains('unsaved')) {
-            const employeeId = row.querySelector('.save-btn').dataset.employee;
-            saveEmployeeAttendance(employeeId);
-            updateRowStatus(row);
-            unsavedCount++;
+            const saveButton = row.querySelector('.save-btn');
+
+            // Ensure the save button exists before accessing 'dataset'
+            if (saveButton) {
+                const employeeId = saveButton.dataset.employee;
+                saveEmployeeAttendance(employeeId);
+                updateRowStatus(row);
+                unsavedCount++;
+            } else {
+                console.error('Save button is not found in row:', row);
+            }
         }
     });
 
+    // Display appropriate alert messages
     if (unsavedCount === 0) {
         alert('جميع السجلات محفوظة بالفعل');
     } else {
@@ -427,7 +453,7 @@ function calculateDeduction(status, delay) {
 function loadFinancialEmployeeOptions() {
     const select = document.getElementById('financialEmployee');
     select.innerHTML = '<option value="">اختر الموظف</option>';
-    
+
     employees.forEach(emp => {
         const option = document.createElement('option');
         option.value = emp.id;
@@ -435,20 +461,24 @@ function loadFinancialEmployeeOptions() {
         select.appendChild(option);
     });
 
-    // Update financial records when month or employee changes
-    document.getElementById('financialMonth').addEventListener('change', loadFinancialRecords);
+    // Update financial records when date range or employee changes
+    document.getElementById('financialFromDate').addEventListener('change', loadFinancialRecords);
+    document.getElementById('financialToDate').addEventListener('change', loadFinancialRecords);
     document.getElementById('financialEmployee').addEventListener('change', loadFinancialRecords);
 }
 
 function loadFinancialRecords() {
-    const month = document.getElementById('financialMonth').value;
+    const fromDate = document.getElementById('financialFromDate').value;
+    const toDate = document.getElementById('financialToDate').value;
     const employeeId = document.getElementById('financialEmployee').value;
     const financialBody = document.getElementById('financialBody');
     financialBody.innerHTML = '';
 
     let filteredRecords = financialRecords;
-    if (month) {
-        filteredRecords = filteredRecords.filter(r => r.month === month);
+    if (fromDate && toDate) {
+        filteredRecords = filteredRecords.filter(r =>
+            r.fromDate === fromDate && r.toDate === toDate
+        );
     }
     if (employeeId) {
         filteredRecords = filteredRecords.filter(r => r.employeeId === employeeId);
@@ -487,11 +517,12 @@ function loadFinancialRecords() {
 
 function addFinancialActionListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const id = this.dataset.id;
             const record = financialRecords.find(r => r.id === id);
             if (record) {
-                document.getElementById('financialMonth').value = record.month;
+                document.getElementById('financialFromDate').value = record.fromDate;
+                document.getElementById('financialToDate').value = record.toDate;
                 document.getElementById('financialEmployee').value = record.employeeId;
                 document.getElementById('advance').value = record.advance;
                 document.getElementById('deferredAdvance').value = record.deferredAdvance;
@@ -506,7 +537,7 @@ function addFinancialActionListeners() {
     });
 
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             if (confirm('هل أنت متأكد من حذف هذه المعاملة المالية؟')) {
                 const id = this.dataset.id;
                 financialRecords = financialRecords.filter(r => r.id !== id);
@@ -521,7 +552,7 @@ function addFinancialActionListeners() {
 function loadEmployeeOptions() {
     const select = document.getElementById('reportEmployee');
     select.innerHTML = '<option value="">جميع الموظفين</option>';
-    
+
     employees.forEach(emp => {
         const option = document.createElement('option');
         option.value = emp.id;
@@ -531,25 +562,42 @@ function loadEmployeeOptions() {
 }
 
 function generateReport() {
-    const month = document.getElementById('reportMonth').value;
+    const fromDate = document.getElementById('reportFromDate').value;
+    const toDate = document.getElementById('reportToDate').value;
     const employeeId = document.getElementById('reportEmployee').value;
 
-    if (!month) {
-        alert('الرجاء اختيار الشهر');
+    // Validate input dates
+    if (!fromDate || !toDate) {
+        alert('الرجاء اختيار الفترة');
         return;
     }
 
+    if (new Date(fromDate) > new Date(toDate)) {
+        alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+        return; // Add "return" here to ensure execution stops
+    }
+
+    // Filter employees based on ID (if provided)
     let filteredEmployees = employees;
     if (employeeId) {
         filteredEmployees = employees.filter(e => e.id === employeeId);
     }
 
+    // Check if there are any employees to generate reports for
+    if (filteredEmployees.length === 0) {
+        alert('لا يوجد موظفين لهذه المعايير');
+        return;
+    }
+
+    // Clear the report body table before appending rows
     const reportBody = document.getElementById('reportBody');
     reportBody.innerHTML = '';
 
+    // Generate report rows
     filteredEmployees.forEach(emp => {
-        const report = generateSalaryReport(emp.id, month);
-        
+        const report = generateSalaryReport(emp.id, fromDate, toDate);
+
+        // Create a new row for the employee report
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${emp.employeeId}</td>
@@ -569,34 +617,33 @@ function generateReport() {
         reportBody.appendChild(row);
     });
 
-    addDetailsButtonListeners(month);
+    // Add listeners for the details buttons
+    addDetailsButtonListeners(fromDate, toDate);
 }
 
-function addDetailsButtonListeners(month) {
+function addDetailsButtonListeners(fromDate, toDate) {
     document.querySelectorAll('.details-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const empId = this.dataset.employee;
-            showEmployeeDetails(empId, month);
+            showEmployeeDetails(empId, fromDate, toDate);
         });
     });
 }
 
-function showEmployeeDetails(employeeId, month) {
+function showEmployeeDetails(employeeId, fromDate, toDate) {
     const emp = employees.find(e => e.id === employeeId);
     if (!emp) return;
 
-    const [year, monthNum] = month.split('-');
-    const startDate = `${year}-${monthNum}-01`;
-    const endDate = `${year}-${monthNum}-${new Date(year, monthNum, 0).getDate()}`;
-
-    const employeeRecords = attendanceRecords.filter(record => 
-        record.employeeId === employeeId && 
-        record.date >= startDate && 
-        record.date <= endDate
+    const employeeRecords = attendanceRecords.filter(record =>
+        record.employeeId === employeeId &&
+        record.date >= fromDate &&
+        record.date <= toDate
     ).sort((a, b) => a.date.localeCompare(b.date));
 
-    const financialRecord = financialRecords.find(record => 
-        record.employeeId === employeeId && record.month === month
+    const financialRecord = financialRecords.find(record =>
+        record.employeeId === employeeId &&
+        record.fromDate === fromDate &&
+        record.toDate === toDate
     );
 
     const detailsBody = document.getElementById('detailsBody');
@@ -654,7 +701,7 @@ function getStatusText(status) {
 function calculateDailySalary(employee) {
     const dailySubscription = employee.subscriptionSalary / 30;
     const dailyInclusive = employee.inclusiveSalary / 30;
-    
+
     return {
         dailySubscription,
         dailyInclusive
@@ -673,7 +720,7 @@ function calculateWorkedDays(employee, monthlyRecords) {
     });
 
     const extraDays = (totalExtraHours * 1.5) / 8;
-    
+
     return {
         attendedDays,
         extraDays,
@@ -681,9 +728,11 @@ function calculateWorkedDays(employee, monthlyRecords) {
     };
 }
 
-function calculateFinancialComponents(employeeId, month) {
-    const financialRecord = financialRecords.find(record => 
-        record.employeeId === employeeId && record.month === month
+function calculateFinancialComponents(employeeId, fromDate, toDate) {
+    const financialRecord = financialRecords.find(record =>
+        record.employeeId === employeeId &&
+        record.fromDate === fromDate &&
+        record.toDate === toDate
     );
 
     return {
@@ -699,17 +748,17 @@ function calculateFinancialComponents(employeeId, month) {
     };
 }
 
-function calculateSalaryComponents(employee, monthlyRecords, month) {
+function calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate) {
     const dailyRates = calculateDailySalary(employee);
     const daysData = calculateWorkedDays(employee, monthlyRecords);
-    const financialData = calculateFinancialComponents(employee.id, month);
-    
+    const financialData = calculateFinancialComponents(employee.id, fromDate, toDate);
+
     const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
     const baseSalary = initialSalary + inclusiveSalary + employee.transfers - employee.insuranceMoney;
-    
+
     const netSalary = baseSalary - financialData.totalDeductions + financialData.totalAdditions;
-    
+
     return {
         dailyRates,
         daysData,
@@ -722,22 +771,24 @@ function calculateSalaryComponents(employee, monthlyRecords, month) {
     };
 }
 
-function generateSalaryReport(employeeId, month) {
+function generateSalaryReport(employeeId, fromDate, toDate) {
     const employee = employees.find(e => e.id === employeeId);
     if (!employee) return null;
-    
-    const monthlyRecords = attendanceRecords.filter(record => 
-        record.employeeId === employeeId && 
-        record.date.startsWith(month)
+
+    const monthlyRecords = attendanceRecords.filter(record =>
+        record.employeeId === employeeId &&
+        record.date >= fromDate &&
+        record.date <= toDate
     );
-    
-    const salaryData = calculateSalaryComponents(employee, monthlyRecords, month);
-    
+
+    const salaryData = calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate);
+
     return {
         employeeId: employee.employeeId,
         employeeName: employee.name,
         department: employee.department,
-        month,
+        fromDate,
+        toDate,
         ...salaryData,
         transfers: employee.transfers,
         insuranceMoney: employee.insuranceMoney,

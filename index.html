@@ -2,14 +2,8 @@
 <html lang="ar" dir="rtl">
 
 <head>
-    <!-- Other head content -->
-
-</head>
-
-<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>نظام حضور وانصراف الموظفين</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -151,8 +145,12 @@
             <h2>المعاملات المالية</h2>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="financialMonth">اختر الشهر</label>
-                    <input type="month" id="financialMonth" name="financialMonth" required>
+                    <label for="financialFromDate">من تاريخ</label>
+                    <input type="date" id="financialFromDate" name="financialFromDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="financialToDate">إلى تاريخ</label>
+                    <input type="date" id="financialToDate" name="financialToDate" required>
                 </div>
                 <div class="form-group">
                     <label for="financialEmployee">اختر الموظف</label>
@@ -187,7 +185,6 @@
                 <div class="xSave">
                     <button type="submit" class="submit-btn">حفظ المعاملات المالية</button>
                 </div>
-
             </form>
             <div class="table-container" style="margin-top: 30px;">
                 <table id="financialTable">
@@ -215,8 +212,12 @@
             <h2>التقارير الشهرية</h2>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="reportMonth">اختر الشهر</label>
-                    <input type="month" id="reportMonth" name="reportMonth" required>
+                    <label for="reportFromDate">من تاريخ</label>
+                    <input type="date" id="reportFromDate" name="reportFromDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="reportToDate">إلى تاريخ</label>
+                    <input type="date" id="reportToDate" name="reportToDate" required>
                 </div>
                 <div class="form-group">
                     <label for="reportEmployee">اختر الموظف (اختياري)</label>
