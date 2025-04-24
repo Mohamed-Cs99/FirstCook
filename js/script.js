@@ -657,7 +657,7 @@ function editFinancialHandler() {
     const id = this.dataset.id;
     const record = financialRecords.find(r => r.id === id);
     if (record) {
-        document.getElementById('financialFrom радиоDate').value = record.fromDate;
+        document.getElementById('financialFromDate').value = record.fromDate;
         document.getElementById('financialToDate').value = record.toDate;
         document.getElementById('financialEmployee').value = record.employeeId;
         document.getElementById('advance').value = record.advance;
@@ -963,4 +963,96 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
             } : {})
         }
     };
+}
+
+// csv file 
+// Add this with your other event listeners
+document.getElementById('exportReportBtn').addEventListener('click', exportReportAsCSV);
+function exportReportAsCSV() {
+    const fromDate = document.getElementById('reportFromDate').value;
+    const toDate = document.getElementById('reportToDate').value;
+    const employeeId = document.getElementById('reportEmployee').value;
+
+    if (!fromDate || !toDate) {
+        alert('الرجاء اختيار الفترة أولاً');
+        return;
+    }
+
+    if (new Date(fromDate) > new Date(toDate)) {
+        alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+        return;
+    }
+
+    let filteredEmployees = employees;
+    if (employeeId) {
+        filteredEmployees = employees.filter(e => e.id === employeeId);
+    }
+
+    if (filteredEmployees.length === 0) {
+        alert('لا يوجد موظفين لهذه المعايير');
+        return;
+    }
+
+    // CSV header with BOM and reversed columns for Arabic
+    let csvContent = "\uFEFF" + [
+        "صافي الراتب بالمتغير",
+        "صافي الراتب",
+        "تأمين",
+        "مكافأة",
+        "بدل انتظام",
+        "بدل انتقالات",
+        "سلفة مؤجلة",
+        "سلفة",
+        "الراتب الشامل",
+        "الراتب الأولي",
+        "إجمالي أيام العمل",
+        " اليومية ",
+        "جزاء",
+        "أيام إضافية",
+        "ساعات إضافية",
+        "أيام الغياب",
+        "إجمالي التأخير",
+        "أيام الحضور",
+        "اسم الموظف",
+        "رقم الموظف"
+    ].join(',') + '\n';
+
+    // Add data rows (columns also reversed to match header)
+    filteredEmployees.forEach(emp => {
+        const report = generateSalaryReport(emp.id, fromDate, toDate);
+        
+        csvContent += [
+            (report.netSalary + report.inclusiveSalary).toFixed(2),
+            report.netSalary.toFixed(2),
+            emp.insuranceMoney.toFixed(2),
+            (report.financialDetails?.bonus || 0).toFixed(2),
+            (report.financialDetails?.regularityAllowance || 0).toFixed(2),
+            emp.transfers.toFixed(2),
+            (report.financialDetails?.deferredAdvance || 0).toFixed(2),
+            (report.financialDetails?.advance || 0).toFixed(2),
+            report.inclusiveSalary.toFixed(2),
+            report.initialSalary.toFixed(2),
+            report.daysData.totalWorkedDays.toFixed(2),
+            report.dailyRates.dailySubscription.toFixed(2),
+            (report.financialDetails?.penalty || 0).toFixed(2),
+            report.daysData.extraDays.toFixed(2),
+            report.daysData.totalExtraHours.toFixed(2),
+            report.daysData.absentDays,
+            report.daysData.totalDelay,
+            report.daysData.attendedDays,
+            `"${emp.name}"`,
+            `"${emp.employeeId}"`
+        ].join(',') + '\n';
+    });
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `تقرير_الرواتب_${fromDate}_إلى_${toDate}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }

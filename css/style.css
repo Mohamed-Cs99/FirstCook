@@ -266,3 +266,13 @@ tr:nth-child(even) {
     }
 }
 
+/*csv file */
+#exportReportBtn {
+    background-color: #28a745;
+    color: white;
+    margin-left: 10px;
+}
+
+#exportReportBtn:hover {
+    background-color: #218838;
+}
