@@ -9,6 +9,7 @@
 </head>
 
 <body>
+    
     <script>
         // Check authentication
         if (sessionStorage.getItem('isAuthenticated') !== 'true') {
@@ -231,18 +232,26 @@
                 <table id="reportTable">
                     <thead>
                         <tr>
-                            <th>رقم</th>
+                            <th>رقم الموظف</th>
                             <th>اسم الموظف</th>
-                            <th>القسم</th>
                             <th>أيام الحضور</th>
-                            <th>أيام الإضافي</th>
-                            <th>إجمالي الأيام</th>
+                            <th>التأخير</th>
+                            <th>الغياب</th>
+                            <th>الساعات الإضافية</th>
+                            <th>الأيام الإضافية</th>
+                            <th>جزاء</th>
+                            <th>اليومية</th>
+                            <th>إجمالي أيام العمل</th>
                             <th>الراتب الأساسي</th>
                             <th>الراتب المتغير</th>
+                            <th>سلف</th>
+                            <th>مؤجلة</th>
                             <th>بدل انتقالات</th>
-                            <th>إجمالي الخصومات</th>
-                            <th>إجمالي الإضافات</th>
-                            <th>صافي الراتب</th>
+                            <th>بدل انتظام</th>
+                            <th>مكافأة</th>
+                            <th>تأمينات</th>
+                            <th>إجمالي الراتب</th>
+                            <th>إجمالي الراتب بالمتغير</th>
                             <th>تفاصيل</th>
                         </tr>
                     </thead>

@@ -9,16 +9,14 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('attendanceDate').valueAsDate = new Date();
 
     // Set current month range in report and financial date pickers
-    // Get today's date
-    // Get today's date
-    // Set current month range in report and financial date pickers
-const today = new Date();
-const firstDay = new Date(today.getFullYear(), today.getMonth(), 1-2).toISOString().slice(0, 10);
-const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0-1).toISOString().slice(0, 10);
-document.getElementById('reportFromDate').value = firstDay;
-document.getElementById('reportToDate').value = lastDay;
-document.getElementById('financialFromDate').value = firstDay;
-document.getElementById('financialToDate').value = lastDay;   
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+    document.getElementById('reportFromDate').value = firstDay;
+    document.getElementById('reportToDate').value = lastDay;
+    document.getElementById('financialFromDate').value = firstDay;
+    document.getElementById('financialToDate').value = lastDay;
+
     // Tab switching functionality
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function () {
@@ -28,7 +26,6 @@ document.getElementById('financialToDate').value = lastDay;
             this.classList.add('active');
             document.getElementById(this.dataset.tab).classList.add('active');
 
-            // Load appropriate data when switching tabs
             if (this.dataset.tab === 'employees') {
                 loadEmployees();
             } else if (this.dataset.tab === 'reports') {
@@ -196,7 +193,7 @@ function displayEmployees(employeesToDisplay) {
     employeesBody.innerHTML = '';
 
     if (employeesToDisplay.length === 0) {
-        employeesBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
+        employeesBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
         return;
     }
 
@@ -227,45 +224,179 @@ function loadEmployees() {
 }
 
 function addEmployeeActionListeners() {
+    // Edit button listeners
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = this.dataset.id;
-            const emp = employees.find(e => e.id === id);
-            if (emp) {
-                document.getElementById('empName').value = emp.name;
-                document.getElementById('empDepartment').value = emp.department;
-                document.getElementById('empId').value = emp.employeeId;
-                document.getElementById('empSubscription').value = emp.subscriptionSalary;
-                document.getElementById('empInclusive').value = emp.inclusiveSalary;
-                document.getElementById('empTransfers').value = emp.transfers;
-                document.getElementById('insuranceMoney').value = emp.insuranceMoney;
-                currentEmployeeId = id;
-                document.getElementById('employeeForm').scrollIntoView();
-            }
-        });
+        btn.removeEventListener('click', editEmployeeHandler); // Prevent duplicate listeners
+        btn.addEventListener('click', editEmployeeHandler);
     });
 
+    // Delete button listeners
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
-                const id = this.dataset.id;
-                employees = employees.filter(emp => emp.id !== id);
-                attendanceRecords = attendanceRecords.filter(record => record.employeeId !== id);
-                financialRecords = financialRecords.filter(record => record.employeeId !== id);
-                localStorage.setItem('employees', JSON.stringify(employees));
-                localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
-                localStorage.setItem('financial', JSON.stringify(financialRecords));
-                const currentSearch = document.getElementById('employeeSearch').value;
-                searchEmployees(currentSearch);
-                if (document.getElementById('daily').classList.contains('active')) {
-                    loadDailyAttendance();
+        btn.removeEventListener('click', deleteEmployeeHandler); // Prevent duplicate listeners
+        btn.addEventListener('click', deleteEmployeeHandler);
+    });
+}
+
+function editEmployeeHandler() {
+    const id = this.dataset.id;
+    const emp = employees.find(e => e.id === id);
+    if (emp) {
+        document.getElementById('empName').value = emp.name;
+        document.getElementById('empDepartment').value = emp.department;
+        document.getElementById('empId').value = emp.employeeId;
+        document.getElementById('empSubscription').value = emp.subscriptionSalary;
+        document.getElementById('empInclusive').value = emp.inclusiveSalary;
+        document.getElementById('empTransfers').value = emp.transfers;
+        document.getElementById('insuranceMoney').value = emp.insuranceMoney;
+        currentEmployeeId = id;
+        document.getElementById('employeeForm').scrollIntoView();
+    }
+}
+
+function deleteEmployeeHandler() {
+    if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
+        const id = this.dataset.id;
+        employees = employees.filter(emp => emp.id !== id);
+        attendanceRecords = attendanceRecords.filter(record => record.employeeId !== id);
+        financialRecords = financialRecords.filter(record => record.employeeId !== id);
+        localStorage.setItem('employees', JSON.stringify(employees));
+        localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
+        localStorage.setItem('financial', JSON.stringify(financialRecords));
+        const currentSearch = document.getElementById('employeeSearch').value;
+        searchEmployees(currentSearch);
+        if (document.getElementById('daily').classList.contains('active')) {
+            loadDailyAttendance();
+        }
+        if (document.getElementById('financial').classList.contains('active')) {
+            loadFinancialRecords();
+        }
+    }
+}
+
+// Attendance Management Functions
+function searchDailyAttendance(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const rows = document.querySelectorAll('#dailyAttendanceBody tr');
+
+    rows.forEach(row => {
+        const employeeId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        const employeeName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const department = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+
+        if (term === '' ||
+            employeeId.includes(term) ||
+            employeeName.includes(term) ||
+            department.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function loadDailyAttendance() {
+    const date = document.getElementById('attendanceDate').value;
+    const dailyAttendanceBody = document.getElementById('dailyAttendanceBody');
+    dailyAttendanceBody.innerHTML = '';
+
+    if (!date) {
+        alert('الرجاء اختيار تاريخ');
+        return;
+    }
+
+    if (employees.length === 0) {
+        dailyAttendanceBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
+        return;
+    }
+
+    employees.forEach(emp => {
+        const record = attendanceRecords.find(r => r.employeeId === emp.id && r.date === date);
+        const isPresent = record?.status === 'present' || !record;
+
+        const row = document.createElement('tr');
+        if (record) {
+            row.classList.add(record.status);
+        } else {
+            row.classList.add('unsaved', 'present');
+        }
+
+        row.innerHTML = `
+            <td>${emp.employeeId}</td>
+            <td>${emp.name}</td>
+            <td>${emp.department}</td>
+            <td>
+                <select class="attendance-status" data-employee="${emp.id}">
+                    <option value="present" ${isPresent ? 'selected' : ''}>حاضر</option>
+                    <option value="absent" ${record?.status === 'absent' ? 'selected' : ''}>غائب</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" class="work-hours" data-employee="${emp.id}" 
+                       value="${isPresent ? (record?.workHours || 8) : 0}" min="0" max="12">
+            </td>
+            <td>
+                <input type="number" class="extra-hours" data-employee="${emp.id}" 
+                       value="${record?.extraHours || 0}" min="0" max="16">
+            </td>
+            <td>
+                <input type="number" class="delay-minutes" data-employee="${emp.id}" 
+                       value="${record?.delay || 0}" min="0">
+            </td>
+            <td>
+                <input type="text" class="notes" data-employee="${emp.id}" 
+                       value="${record?.notes || ''}">
+            </td>
+            <td>
+                <button class="action-btn save-btn" data-employee="${emp.id}">حفظ</button>
+            </td>
+        `;
+
+        dailyAttendanceBody.appendChild(row);
+
+        row.querySelectorAll('.attendance-status, .work-hours, .extra-hours, .delay-minutes, .notes').forEach(element => {
+            element.addEventListener('change', function () {
+                if (!row.classList.contains('unsaved')) {
+                    row.classList.add('unsaved');
                 }
-                if (document.getElementById('financial').classList.contains('active')) {
-                    loadFinancialRecords();
-                }
+            });
+        });
+
+        const attendanceStatus = row.querySelector(`.attendance-status[data-employee="${emp.id}"]`);
+        const workHoursInput = row.querySelector(`.work-hours[data-employee="${emp.id}"]`);
+
+        attendanceStatus.addEventListener('change', () => {
+            workHoursInput.value = attendanceStatus.value === 'present' ? 8 : 0;
+            if (!row.classList.contains('unsaved')) {
+                row.classList.add('unsaved');
             }
         });
+
+        row.querySelector('.save-btn').addEventListener('click', function () {
+            const employeeId = this.dataset.employee;
+            saveEmployeeAttendance(employeeId);
+            updateRowStatus(row);
+        });
     });
+}
+
+function deleteEmployeeHandler() {
+    if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
+        const id = this.dataset.id;
+        employees = employees.filter(emp => emp.id !== id);
+        attendanceRecords = attendanceRecords.filter(record => record.employeeId !== id);
+        financialRecords = financialRecords.filter(record => record.employeeId !== id);
+        localStorage.setItem('employees', JSON.stringify(employees));
+        localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
+        localStorage.setItem('financial', JSON.stringify(financialRecords));
+        const currentSearch = document.getElementById('employeeSearch').value;
+        searchEmployees(currentSearch);
+        if (document.getElementById('daily').classList.contains('active')) {
+            loadDailyAttendance();
+        }
+        if (document.getElementById('financial').classList.contains('active')) {
+            loadFinancialRecords();
+        }
+    }
 }
 
 // Attendance Management Functions
@@ -412,23 +543,19 @@ function saveDailyAttendance() {
     let unsavedCount = 0;
 
     rows.forEach(row => {
-        // Correcting the reference to 'classList'
         if (row.classList.contains('unsaved')) {
             const saveButton = row.querySelector('.save-btn');
-
-            // Ensure the save button exists before accessing 'dataset'
             if (saveButton) {
                 const employeeId = saveButton.dataset.employee;
                 saveEmployeeAttendance(employeeId);
                 updateRowStatus(row);
                 unsavedCount++;
             } else {
-                console.error('Save button is not found in row:', row);
+                console.error('Save button not found in row:', row);
             }
         }
     });
 
-    // Display appropriate alert messages
     if (unsavedCount === 0) {
         alert('جميع السجلات محفوظة بالفعل');
     } else {
@@ -461,7 +588,6 @@ function loadFinancialEmployeeOptions() {
         select.appendChild(option);
     });
 
-    // Update financial records when date range or employee changes
     document.getElementById('financialFromDate').addEventListener('change', loadFinancialRecords);
     document.getElementById('financialToDate').addEventListener('change', loadFinancialRecords);
     document.getElementById('financialEmployee').addEventListener('change', loadFinancialRecords);
@@ -485,7 +611,7 @@ function loadFinancialRecords() {
     }
 
     if (filteredRecords.length === 0) {
-        financialBody.innerHTML = '<tr><td colspan="11" style="text-align: center;">لا توجد معاملات مالية</td></tr>';
+        financialBody.innerHTML = '<tr><td colspan="10" style="text-align: center;">لا توجد معاملات مالية</td></tr>';
         return;
     }
 
@@ -517,35 +643,41 @@ function loadFinancialRecords() {
 
 function addFinancialActionListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const id = this.dataset.id;
-            const record = financialRecords.find(r => r.id === id);
-            if (record) {
-                document.getElementById('financialFromDate').value = record.fromDate;
-                document.getElementById('financialToDate').value = record.toDate;
-                document.getElementById('financialEmployee').value = record.employeeId;
-                document.getElementById('advance').value = record.advance;
-                document.getElementById('deferredAdvance').value = record.deferredAdvance;
-                document.getElementById('penalty').value = record.penalty;
-                document.getElementById('bonus').value = record.bonus;
-                document.getElementById('regularityAllowance').value = record.regularityAllowance;
-                financialRecords = financialRecords.filter(r => r.id !== id);
-                localStorage.setItem('financial', JSON.stringify(financialRecords));
-                loadFinancialRecords();
-            }
-        });
+        btn.removeEventListener('click', editFinancialHandler); // Prevent duplicate listeners
+        btn.addEventListener('click', editFinancialHandler);
     });
 
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            if (confirm('هل أنت متأكد من حذف هذه المعاملة المالية؟')) {
-                const id = this.dataset.id;
-                financialRecords = financialRecords.filter(r => r.id !== id);
-                localStorage.setItem('financial', JSON.stringify(financialRecords));
-                loadFinancialRecords();
-            }
-        });
+        btn.removeEventListener('click', deleteFinancialHandler); // Prevent duplicate listeners
+        btn.addEventListener('click', deleteFinancialHandler);
     });
+}
+
+function editFinancialHandler() {
+    const id = this.dataset.id;
+    const record = financialRecords.find(r => r.id === id);
+    if (record) {
+        document.getElementById('financialFrom радиоDate').value = record.fromDate;
+        document.getElementById('financialToDate').value = record.toDate;
+        document.getElementById('financialEmployee').value = record.employeeId;
+        document.getElementById('advance').value = record.advance;
+        document.getElementById('deferredAdvance').value = record.deferredAdvance;
+        document.getElementById('penalty').value = record.penalty;
+        document.getElementById('bonus').value = record.bonus;
+        document.getElementById('regularityAllowance').value = record.regularityAllowance;
+        financialRecords = financialRecords.filter(r => r.id !== id);
+        localStorage.setItem('financial', JSON.stringify(financialRecords));
+        loadFinancialRecords();
+    }
+}
+
+function deleteFinancialHandler() {
+    if (confirm('هل أنت متأكد من حذف هذه المعاملة المالية؟')) {
+        const id = this.dataset.id;
+        financialRecords = financialRecords.filter(r => r.id !== id);
+        localStorage.setItem('financial', JSON.stringify(financialRecords));
+        loadFinancialRecords();
+    }
 }
 
 // Report Generation Functions
@@ -566,7 +698,6 @@ function generateReport() {
     const toDate = document.getElementById('reportToDate').value;
     const employeeId = document.getElementById('reportEmployee').value;
 
-    // Validate input dates
     if (!fromDate || !toDate) {
         alert('الرجاء اختيار الفترة');
         return;
@@ -574,60 +705,67 @@ function generateReport() {
 
     if (new Date(fromDate) > new Date(toDate)) {
         alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
-        return; // Add "return" here to ensure execution stops
+        return;
     }
 
-    // Filter employees based on ID (if provided)
     let filteredEmployees = employees;
     if (employeeId) {
         filteredEmployees = employees.filter(e => e.id === employeeId);
     }
 
-    // Check if there are any employees to generate reports for
     if (filteredEmployees.length === 0) {
         alert('لا يوجد موظفين لهذه المعايير');
         return;
     }
 
-    // Clear the report body table before appending rows
     const reportBody = document.getElementById('reportBody');
     reportBody.innerHTML = '';
 
-    // Generate report rows
     filteredEmployees.forEach(emp => {
         const report = generateSalaryReport(emp.id, fromDate, toDate);
 
-        // Create a new row for the employee report
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
-            <td>${emp.department}</td>
             <td>${report.daysData.attendedDays}</td>
+            <td>${report.daysData.totalDelay}</td>
+            <td>${report.daysData.absentDays}</td>
+            <td>${report.daysData.totalExtraHours.toFixed(2)}</td>
             <td>${report.daysData.extraDays.toFixed(2)}</td>
+            <td>${report.financialDetails?.penalty.toFixed(2) || '0.00'}</td>
+            <td>${report.dailyRates.dailySubscription.toFixed(2)}</td>
             <td>${report.daysData.totalWorkedDays.toFixed(2)}</td>
             <td>${report.initialSalary.toFixed(2)}</td>
             <td>${report.inclusiveSalary.toFixed(2)}</td>
+            <td>${report.financialDetails?.advance.toFixed(2) || '0.00'}</td>
+            <td>${report.financialDetails?.deferredAdvance.toFixed(2) || '0.00'}</td>
             <td>${emp.transfers.toFixed(2)}</td>
-            <td>${report.totalDeductions.toFixed(2)}</td>
-            <td>${report.totalAdditions.toFixed(2)}</td>
+            <td>${report.financialDetails?.regularityAllowance.toFixed(2) || '0.00'}</td>
+            <td>${report.financialDetails?.bonus.toFixed(2) || '0.00'}</td>
+            <td>${emp.insuranceMoney.toFixed(2)}</td>
             <td>${report.netSalary.toFixed(2)}</td>
-            <td><button class="action-btn details-btn" data-employee="${emp.id}">عرض التفاصيل</button></td>
+            <td>${(report.netSalary + report.inclusiveSalary).toFixed(2)}</td>
+            <td><button class="action-btn details-btn" data-employee="${emp.id}" data-from-date="${fromDate}" data-to-date="${toDate}">عرض التفاصيل</button></td>
         `;
         reportBody.appendChild(row);
     });
 
-    // Add listeners for the details buttons
-    addDetailsButtonListeners(fromDate, toDate);
+    addDetailsButtonListeners();
 }
 
-function addDetailsButtonListeners(fromDate, toDate) {
+function addDetailsButtonListeners() {
     document.querySelectorAll('.details-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const empId = this.dataset.employee;
-            showEmployeeDetails(empId, fromDate, toDate);
-        });
+        btn.removeEventListener('click', detailsButtonHandler); // Prevent duplicate listeners
+        btn.addEventListener('click', detailsButtonHandler);
     });
+}
+
+function detailsButtonHandler() {
+    const empId = this.dataset.employee;
+    const fromDate = this.dataset.fromDate;
+    const toDate = this.dataset.toDate;
+    showEmployeeDetails(empId, fromDate, toDate);
 }
 
 function showEmployeeDetails(employeeId, fromDate, toDate) {
@@ -668,7 +806,6 @@ function showEmployeeDetails(employeeId, fromDate, toDate) {
         detailsBody.appendChild(row);
     });
 
-    // Add financial details if available
     if (financialRecord) {
         const financialRow = document.createElement('tr');
         financialRow.innerHTML = `
@@ -710,12 +847,17 @@ function calculateDailySalary(employee) {
 
 function calculateWorkedDays(employee, monthlyRecords) {
     let attendedDays = 0;
+    let absentDays = 0;
     let totalExtraHours = 0;
+    let totalDelay = 0;
 
     monthlyRecords.forEach(record => {
         if (record.status === 'present') {
             attendedDays++;
             totalExtraHours += record.extraHours || 0;
+            totalDelay += record.delay || 0;
+        } else if (record.status === 'absent') {
+            absentDays++;
         }
     });
 
@@ -723,7 +865,10 @@ function calculateWorkedDays(employee, monthlyRecords) {
 
     return {
         attendedDays,
+        absentDays,
+        totalExtraHours,
         extraDays,
+        totalDelay,
         totalWorkedDays: attendedDays + extraDays
     };
 }
@@ -755,7 +900,7 @@ function calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate) {
 
     const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
-    const baseSalary = initialSalary + inclusiveSalary + employee.transfers - employee.insuranceMoney;
+    const baseSalary = initialSalary + employee.transfers - employee.insuranceMoney;
 
     const netSalary = baseSalary - financialData.totalDeductions + financialData.totalAdditions;
 
@@ -796,7 +941,10 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
             "أجر الاشتراك اليومي": salaryData.dailyRates.dailySubscription.toFixed(2),
             "أجر الشامل اليومي": salaryData.dailyRates.dailyInclusive.toFixed(2),
             "أيام الحضور الفعلي": salaryData.daysData.attendedDays,
+            "أيام الغياب": salaryData.daysData.absentDays,
+            "الساعات الإضافية": salaryData.daysData.totalExtraHours.toFixed(2),
             "أيام الإضافي": salaryData.daysData.extraDays.toFixed(2),
+            "التأخير": salaryData.daysData.totalDelay,
             "إجمالي أيام العمل": salaryData.daysData.totalWorkedDays.toFixed(2),
             "الراتب الأولي (اشتراك)": salaryData.initialSalary.toFixed(2),
             "الراتب الشامل": salaryData.inclusiveSalary.toFixed(2),
@@ -805,6 +953,7 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
             "إجمالي الخصومات": salaryData.totalDeductions.toFixed(2),
             "إجمالي الإضافات": salaryData.totalAdditions.toFixed(2),
             "صافي الراتب": salaryData.netSalary.toFixed(2),
+            "صافي الراتب بالمتغير": (salaryData.netSalary + salaryData.inclusiveSalary).toFixed(2),
             ...(salaryData.financialDetails ? {
                 "السلفة": salaryData.financialDetails.advance.toFixed(2),
                 "سلفة مؤجلة": salaryData.financialDetails.deferredAdvance.toFixed(2),
