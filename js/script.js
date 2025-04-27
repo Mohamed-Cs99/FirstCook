@@ -598,30 +598,49 @@ function generateReport() {
     filteredEmployees.forEach(emp => {
         const report = generateSalaryReport(emp.id, fromDate, toDate);
 
+        // Safeguard against undefined values
+        const attendedDays = report?.daysData?.attendedDays || 0;
+        const absentDays = report?.daysData?.absentDays || 0;
+        const delayDays = Number(report?.delayDays || 0); // Ensure delayDays is a number
+        const delayValue = Number(report?.delayValue || 0); // Ensure delayValue is a number
+        const totalExtraHours = Number(report?.daysData?.totalExtraHours || 0);
+        const extraDays = Number(report?.daysData?.extraDays || 0);
+        const penalty = Number(report?.financialDetails?.penalty || 0);
+        const dailySubscription = Number(report?.dailyRates?.dailySubscription || 0);
+        const totalWorkedDays = Number(report?.daysData?.totalWorkedDays || 0);
+        const initialSalary = Number(report?.initialSalary || 0);
+        const inclusiveSalary = Number(report?.inclusiveSalary || 0);
+        const advance = Number(report?.financialDetails?.advance || 0);
+        const deferredAdvance = Number(report?.financialDetails?.deferredAdvance || 0);
+        const regularityAllowance = Number(report?.financialDetails?.regularityAllowance || 0);
+        const bonus = Number(report?.financialDetails?.bonus || 0);
+        const insuranceMoney = Number(emp.insuranceMoney || 0);
+        const netSalary = Number(report?.netSalary || 0);
+        const totalSalaryWithInclusive = netSalary + inclusiveSalary;
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
-            <td>${report.daysData.attendedDays}</td>
-             <td>${report.daysData.absentDays}</td>
-            <td>${report.delayDays}</td>
-            <td>${report.delayValue}</td>
-           
-            <td>${report.daysData.totalExtraHours.toFixed(2)}</td>
-            <td>${report.daysData.extraDays.toFixed(2)}</td>
-            <td>${report.financialDetails?.penalty.toFixed(2) || '0.00'}</td>
-            <td>${report.dailyRates.dailySubscription.toFixed(2)}</td>
-            <td>${report.daysData.totalWorkedDays.toFixed(2)}</td>
-            <td>${report.initialSalary.toFixed(2)}</td>
-            <td>${report.inclusiveSalary.toFixed(2)}</td>
-            <td>${report.financialDetails?.advance.toFixed(2) || '0.00'}</td>
-            <td>${report.financialDetails?.deferredAdvance.toFixed(2) || '0.00'}</td>
+            <td>${attendedDays}</td>
+            <td>${absentDays}</td>
+            <td>${delayDays.toFixed(2)}</td>
+            <td>${delayValue.toFixed(2)}</td>
+            <td>${totalExtraHours.toFixed(2)}</td>
+            <td>${extraDays.toFixed(2)}</td>
+            <td>${penalty.toFixed(2)}</td>
+            <td>${dailySubscription.toFixed(2)}</td>
+            <td>${totalWorkedDays.toFixed(2)}</td>
+            <td>${initialSalary.toFixed(2)}</td>
+            <td>${inclusiveSalary.toFixed(2)}</td>
+            <td>${advance.toFixed(2)}</td>
+            <td>${deferredAdvance.toFixed(2)}</td>
             <td>${emp.transfers.toFixed(2)}</td>
-            <td>${report.financialDetails?.regularityAllowance.toFixed(2) || '0.00'}</td>
-            <td>${report.financialDetails?.bonus.toFixed(2) || '0.00'}</td>
-            <td>${emp.insuranceMoney.toFixed(2)}</td>
-            <td>${report.netSalary.toFixed(2)}</td>
-            <td>${(report.netSalary + report.inclusiveSalary).toFixed(2)}</td>
+            <td>${regularityAllowance.toFixed(2)}</td>
+            <td>${bonus.toFixed(2)}</td>
+            <td>${insuranceMoney.toFixed(2)}</td>
+            <td>${netSalary.toFixed(2)}</td>
+            <td>${totalSalaryWithInclusive.toFixed(2)}</td>
             <td><button class="action-btn details-btn" data-employee="${emp.id}" data-from-date="${fromDate}" data-to-date="${toDate}">عرض التفاصيل</button></td>
         `;
         reportBody.appendChild(row);
@@ -664,9 +683,12 @@ function showEmployeeDetails(employeeId, fromDate, toDate) {
     detailsBody.innerHTML = '';
 
     employeeRecords.forEach(record => {
-        const extraHours = record.extraHours || 0;
-        const workHours = record.workHours || 0;
+        // Safeguard against undefined values
+        const extraHours = Number(record.extraHours || 0);
+        const workHours = Number(record.workHours || 0);
         const totalHours = workHours + (extraHours * 1.5);
+        const delay = Number(record.delay || 0);
+        const deduction = Number(record.deduction || 0);
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -675,8 +697,8 @@ function showEmployeeDetails(employeeId, fromDate, toDate) {
             <td>${workHours.toFixed(2)}</td>
             <td>${extraHours.toFixed(2)}</td>
             <td>${totalHours.toFixed(2)}</td>
-            <td>${record.delay}</td>
-            <td>${record.deduction.toFixed(2)} يوم</td>
+            <td>${delay}</td>
+            <td>${deduction.toFixed(2)} يوم</td>
             <td>${record.notes || '-'}</td>
         `;
         detailsBody.appendChild(row);
@@ -687,13 +709,13 @@ function showEmployeeDetails(employeeId, fromDate, toDate) {
         financialRow.innerHTML = `
             <td colspan="8">
                 <strong>التفاصيل المالية:</strong><br>
-                السلفة: ${financialRecord.advance.toFixed(2)}<br>
-                سلفة مؤجلة: ${financialRecord.deferredAdvance.toFixed(2)}<br>
-                جزاء: ${financialRecord.penalty.toFixed(2)}<br>
-                مكافأة: ${financialRecord.bonus.toFixed(2)}<br>
-                بدل انتظام: ${financialRecord.regularityAllowance.toFixed(2)}<br>
-                إجمالي الخصومات: ${financialRecord.totalDeductions.toFixed(2)}<br>
-                إجمالي الإضافات: ${financialRecord.totalAdditions.toFixed(2)}
+                السلفة: ${Number(financialRecord.advance || 0).toFixed(2)}<br>
+                سلفة مؤجلة: ${Number(financialRecord.deferredAdvance || 0).toFixed(2)}<br>
+                جزاء: ${Number(financialRecord.penalty || 0).toFixed(2)}<br>
+                مكافأة: ${Number(financialRecord.bonus || 0).toFixed(2)}<br>
+                بدل انتظام: ${Number(financialRecord.regularityAllowance || 0).toFixed(2)}<br>
+                إجمالي الخصومات: ${Number(financialRecord.totalDeductions || 0).toFixed(2)}<br>
+                إجمالي الإضافات: ${Number(financialRecord.totalAdditions || 0).toFixed(2)}
             </td>
         `;
         detailsBody.appendChild(financialRow);
@@ -806,10 +828,10 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
 
     const salaryData = calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate);
 
-    // Calculate total delay in minutes and its value
-    const totalDelayMinutes = salaryData.daysData.totalDelay;
-    const delayDays = salaryData.daysData.delayDays; // Use calculated delay days
-    const delayValue = calculateDelayValue(totalDelayMinutes, salaryData.dailyRates.dailySubscription);
+    // Safeguard against undefined values
+    const totalDelayMinutes = salaryData.daysData.totalDelay || 0;
+    const delayDays = salaryData.daysData.delayDays || 0; // Use calculated delay days
+    const delayValue = calculateDelayValue(totalDelayMinutes, salaryData.dailyRates.dailySubscription || 0);
 
     return {
         employeeId: employee.employeeId,
@@ -820,32 +842,32 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
         ...salaryData,
         delayDays: delayDays.toFixed(2),
         delayValue: delayValue.toFixed(2),
-        transfers: employee.transfers,
-        insuranceMoney: employee.insuranceMoney,
+        transfers: employee.transfers || 0,
+        insuranceMoney: employee.insuranceMoney || 0,
         breakdown: {
             "أيام التأخير": delayDays.toFixed(2),
             "قيمة التأخير": delayValue.toFixed(2),
-            "أجر الاشتراك اليومي": salaryData.dailyRates.dailySubscription.toFixed(2),
-            "أجر الشامل اليومي": salaryData.dailyRates.dailyInclusive.toFixed(2),
-            "أيام الحضور الفعلي": salaryData.daysData.attendedDays,
-            "أيام الغياب": salaryData.daysData.absentDays,
-            "الساعات الإضافية": salaryData.daysData.totalExtraHours.toFixed(2),
-            "أيام الإضافي": salaryData.daysData.extraDays.toFixed(2),
-            "إجمالي أيام العمل": salaryData.daysData.totalWorkedDays.toFixed(2),
-            "الراتب الأولي (اشتراك)": salaryData.initialSalary.toFixed(2),
-            "الراتب الشامل": salaryData.inclusiveSalary.toFixed(2),
-            "بدل الانتقالات": employee.transfers.toFixed(2),
-            "التأمين": employee.insuranceMoney.toFixed(2),
-            "إجمالي الخصومات": salaryData.totalDeductions.toFixed(2),
-            "إجمالي الإضافات": salaryData.totalAdditions.toFixed(2),
-            "صافي الراتب": salaryData.netSalary.toFixed(2),
-            "صافي الراتب بالمتغير": (salaryData.netSalary + salaryData.inclusiveSalary).toFixed(2),
+            "أجر الاشتراك اليومي": (salaryData.dailyRates.dailySubscription || 0).toFixed(2),
+            "أجر الشامل اليومي": (salaryData.dailyRates.dailyInclusive || 0).toFixed(2),
+            "أيام الحضور الفعلي": salaryData.daysData.attendedDays || 0,
+            "أيام الغياب": salaryData.daysData.absentDays || 0,
+            "الساعات الإضافية": (salaryData.daysData.totalExtraHours || 0).toFixed(2),
+            "أيام الإضافي": (salaryData.daysData.extraDays || 0).toFixed(2),
+            "إجمالي أيام العمل": (salaryData.daysData.totalWorkedDays || 0).toFixed(2),
+            "الراتب الأولي (اشتراك)": (salaryData.initialSalary || 0).toFixed(2),
+            "الراتب الشامل": (salaryData.inclusiveSalary || 0).toFixed(2),
+            "بدل الانتقالات": (employee.transfers || 0).toFixed(2),
+            "التأمين": (employee.insuranceMoney || 0).toFixed(2),
+            "إجمالي الخصومات": (salaryData.totalDeductions || 0).toFixed(2),
+            "إجمالي الإضافات": (salaryData.totalAdditions || 0).toFixed(2),
+            "صافي الراتب": (salaryData.netSalary || 0).toFixed(2),
+            "صافي الراتب بالمتغير": ((salaryData.netSalary || 0) + (salaryData.inclusiveSalary || 0)).toFixed(2),
             ...(salaryData.financialDetails ? {
-                "السلفة": salaryData.financialDetails.advance.toFixed(2),
-                "سلفة مؤجلة": salaryData.financialDetails.deferredAdvance.toFixed(2),
-                "جزاء": salaryData.financialDetails.penalty.toFixed(2),
-                "مكافأة": salaryData.financialDetails.bonus.toFixed(2),
-                "بدل انتظام": salaryData.financialDetails.regularityAllowance.toFixed(2)
+                "السلفة": (salaryData.financialDetails.advance || 0).toFixed(2),
+                "سلفة مؤجلة": (salaryData.financialDetails.deferredAdvance || 0).toFixed(2),
+                "جزاء": (salaryData.financialDetails.penalty || 0).toFixed(2),
+                "مكافأة": (salaryData.financialDetails.bonus || 0).toFixed(2),
+                "بدل انتظام": (salaryData.financialDetails.regularityAllowance || 0).toFixed(2)
             } : {})
         }
     };
