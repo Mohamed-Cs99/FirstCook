@@ -172,7 +172,13 @@
                     </div>
                     <div class="form-group">
                         <label for="penalty">جزاء</label>
-                        <input type="number" id="penalty" name="penalty" min="0" value="0">
+                        <select id="penalty" name="penalty">
+                            <option value="0">لا يوجد</option>
+                            <option value="0.5">نص يوم</option>
+                            <option value="1">يوم</option>
+                            <option value="2">يومين</option>
+                            <option value="3">تلات ايام</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="bonus">مكافأة</label>
@@ -198,7 +204,7 @@
                             <th>جزاء</th>
                             <th>مكافأة</th>
                             <th>بدل انتظام</th>
-                            <th>إجمالي الخصومات</th>
+                            <th>إجمالي الخصومات بدون الجزاءات</th>
                             <th>إجمالي الإضافات</th>
                             <th>إجراءات</th>
                         </tr>

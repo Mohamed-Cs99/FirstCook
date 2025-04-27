@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
             regularityAllowance: parseFloat(document.getElementById('regularityAllowance').value) || 0
         };
 
-        const totalDeductions = record.advance + record.deferredAdvance + record.penalty;
+        const totalDeductions = record.advance + record.deferredAdvance ;
         const totalAdditions = record.bonus + record.regularityAllowance;
         record.totalDeductions = totalDeductions;
         record.totalAdditions = totalAdditions;
@@ -493,13 +493,21 @@ function loadFinancialRecords() {
         const emp = employees.find(e => e.id === record.employeeId);
         if (!emp) return;
 
+        const penaltyDaysText = {
+            0: 'لا يوجد',
+            0.5: 'نص يوم',
+            1: 'يوم',
+            2: 'يومين',
+            3: 'تلات ايام'
+        }[record.penalty] || `${record.penalty} يوم`;
+
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${emp.employeeId}</td>
+            <td>${emp.employeeId}</td> <!-- Display employee number instead of ID -->
             <td>${emp.name}</td>
             <td>${record.advance.toFixed(2)}</td>
             <td>${record.deferredAdvance.toFixed(2)}</td>
-            <td>${record.penalty.toFixed(2)}</td>
+            <td>${penaltyDaysText}</td>
             <td>${record.bonus.toFixed(2)}</td>
             <td>${record.regularityAllowance.toFixed(2)}</td>
             <td>${record.totalDeductions.toFixed(2)}</td>
@@ -514,7 +522,6 @@ function loadFinancialRecords() {
 
     addFinancialActionListeners();
 }
-
 function addFinancialActionListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.removeEventListener('click', editFinancialHandler); // Prevent duplicate listeners
@@ -607,7 +614,7 @@ function generateReport() {
         const extraDays = Number(report?.daysData?.extraDays || 0);
         const penalty = Number(report?.financialDetails?.penalty || 0);
         const dailySubscription = Number(report?.dailyRates?.dailySubscription || 0);
-        const totalWorkedDays = Number(report?.daysData?.totalWorkedDays || 0);
+        const totalWorkedDays = Number(report?.totalWorkedDays || 0); // Use adjusted totalWorkedDays
         const initialSalary = Number(report?.initialSalary || 0);
         const inclusiveSalary = Number(report?.inclusiveSalary || 0);
         const advance = Number(report?.financialDetails?.advance || 0);
@@ -630,7 +637,7 @@ function generateReport() {
             <td>${extraDays.toFixed(2)}</td>
             <td>${penalty.toFixed(2)}</td>
             <td>${dailySubscription.toFixed(2)}</td>
-            <td>${totalWorkedDays.toFixed(2)}</td>
+            <td>${totalWorkedDays.toFixed(2)}</td> <!-- Use adjusted totalWorkedDays -->
             <td>${initialSalary.toFixed(2)}</td>
             <td>${inclusiveSalary.toFixed(2)}</td>
             <td>${advance.toFixed(2)}</td>
@@ -769,7 +776,7 @@ function calculateWorkedDays(employee, monthlyRecords) {
         extraDays,
         totalDelay,
         delayDays, // Include delay days
-        totalWorkedDays: attendedDays + extraDays - delayDays // Subtract delay days
+        totalWorkedDays: attendedDays + extraDays - delayDays  // Subtract delay days
     };
 }
 
@@ -798,7 +805,11 @@ function calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate) {
     const daysData = calculateWorkedDays(employee, monthlyRecords);
     const financialData = calculateFinancialComponents(employee.id, fromDate, toDate);
 
-    const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription; // Updated total worked days
+    // Subtract penalty days from total worked days
+    const penaltyDays = financialData.financialDetails?.penalty || 0;
+    const adjustedWorkedDays = daysData.totalWorkedDays - penaltyDays;
+
+    const initialSalary = adjustedWorkedDays * dailyRates.dailySubscription;
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
     const baseSalary = initialSalary + employee.transfers - employee.insuranceMoney;
 
@@ -812,7 +823,8 @@ function calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate) {
         totalDeductions: financialData.totalDeductions,
         totalAdditions: financialData.totalAdditions,
         netSalary,
-        financialDetails: financialData.financialDetails
+        financialDetails: financialData.financialDetails,
+        penaltyDays // Include penalty days for reporting
     };
 }
 
@@ -833,6 +845,17 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
     const delayDays = salaryData.daysData.delayDays || 0; // Use calculated delay days
     const delayValue = calculateDelayValue(totalDelayMinutes, salaryData.dailyRates.dailySubscription || 0);
 
+    // Debug logs
+    console.log(`Employee ID: ${employeeId}`);
+    console.log(`Total Worked Days (before adjustment): ${salaryData.daysData.totalWorkedDays}`);
+    console.log(`Penalty Days: ${salaryData.penaltyDays}`);
+
+    // Subtract penalty days from total worked days
+    const penaltyDays = salaryData.penaltyDays || 0; // Ensure penaltyDays is a valid number
+    const adjustedTotalWorkedDays = salaryData.daysData.totalWorkedDays - penaltyDays;
+
+    console.log(`Total Worked Days (after adjustment): ${adjustedTotalWorkedDays}`);
+
     return {
         employeeId: employee.employeeId,
         employeeName: employee.name,
@@ -842,6 +865,7 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
         ...salaryData,
         delayDays: delayDays.toFixed(2),
         delayValue: delayValue.toFixed(2),
+        totalWorkedDays: adjustedTotalWorkedDays.toFixed(2), // Adjusted total worked days
         transfers: employee.transfers || 0,
         insuranceMoney: employee.insuranceMoney || 0,
         breakdown: {
@@ -853,7 +877,7 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
             "أيام الغياب": salaryData.daysData.absentDays || 0,
             "الساعات الإضافية": (salaryData.daysData.totalExtraHours || 0).toFixed(2),
             "أيام الإضافي": (salaryData.daysData.extraDays || 0).toFixed(2),
-            "إجمالي أيام العمل": (salaryData.daysData.totalWorkedDays || 0).toFixed(2),
+            "إجمالي أيام العمل": adjustedTotalWorkedDays.toFixed(2), // Adjusted total worked days
             "الراتب الأولي (اشتراك)": (salaryData.initialSalary || 0).toFixed(2),
             "الراتب الشامل": (salaryData.inclusiveSalary || 0).toFixed(2),
             "بدل الانتقالات": (employee.transfers || 0).toFixed(2),
@@ -927,31 +951,41 @@ function exportReportAsCSV() {
 
     // Add data rows (columns also reversed to match header)
     filteredEmployees.forEach(emp => {
-        const report = generateSalaryReport(emp.id, fromDate, toDate);
-        
-        csvContent += [
-            (report.netSalary + report.inclusiveSalary).toFixed(2),
-            report.netSalary.toFixed(2),
-            emp.insuranceMoney.toFixed(2),
-            (report.financialDetails?.bonus || 0).toFixed(2),
-            (report.financialDetails?.regularityAllowance || 0).toFixed(2),
-            emp.transfers.toFixed(2),
-            (report.financialDetails?.deferredAdvance || 0).toFixed(2),
-            (report.financialDetails?.advance || 0).toFixed(2),
-            report.inclusiveSalary.toFixed(2),
-            report.initialSalary.toFixed(2),
-            report.daysData.totalWorkedDays.toFixed(2),
-            report.dailyRates.dailySubscription.toFixed(2),
-            (report.financialDetails?.penalty || 0).toFixed(2),
-            report.daysData.extraDays.toFixed(2),
-            report.daysData.totalExtraHours.toFixed(2),
-            report.daysData.absentDays,
-            report.daysData.totalDelay,
-            report.daysData.attendedDays,
-            `"${emp.name}"`,
-            `"${emp.employeeId}"`
-        ].join(',') + '\n';
-    });
+    const report = generateSalaryReport(emp.id, fromDate, toDate);
+
+    // Safeguard against undefined values
+    const penaltyDaysText = {
+        0: 'لا يوجد',
+        0.5: 'نص يوم',
+        1: 'يوم',
+        2: 'يومين',
+        3: 'تلات ايام'
+    }[report.penaltyDays] || `${report.penaltyDays} يوم`;
+
+    csvContent += [
+        report.employeeId,
+        report.employeeName,
+        report.daysData.attendedDays || 0,
+        report.daysData.absentDays || 0,
+        report.delayDays.toFixed(2),
+        report.delayValue.toFixed(2),
+        report.daysData.totalExtraHours.toFixed(2),
+        report.daysData.extraDays.toFixed(2),
+        penaltyDaysText,
+        report.dailyRates.dailySubscription.toFixed(2),
+        report.daysData.totalWorkedDays.toFixed(2),
+        report.initialSalary.toFixed(2),
+        report.inclusiveSalary.toFixed(2),
+        report.financialDetails.advance.toFixed(2),
+        report.financialDetails.deferredAdvance.toFixed(2),
+        report.transfers.toFixed(2),
+        report.financialDetails.regularityAllowance.toFixed(2),
+        report.financialDetails.bonus.toFixed(2),
+        report.insuranceMoney.toFixed(2),
+        report.netSalary.toFixed(2),
+        (report.netSalary + report.inclusiveSalary).toFixed(2)
+    ].join(',') + '\n';
+});
 
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
