@@ -379,132 +379,6 @@ function loadDailyAttendance() {
     });
 }
 
-function deleteEmployeeHandler() {
-    if (confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع سجلات الحضور والمعاملات المالية الخاصة به أيضًا.')) {
-        const id = this.dataset.id;
-        employees = employees.filter(emp => emp.id !== id);
-        attendanceRecords = attendanceRecords.filter(record => record.employeeId !== id);
-        financialRecords = financialRecords.filter(record => record.employeeId !== id);
-        localStorage.setItem('employees', JSON.stringify(employees));
-        localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
-        localStorage.setItem('financial', JSON.stringify(financialRecords));
-        const currentSearch = document.getElementById('employeeSearch').value;
-        searchEmployees(currentSearch);
-        if (document.getElementById('daily').classList.contains('active')) {
-            loadDailyAttendance();
-        }
-        if (document.getElementById('financial').classList.contains('active')) {
-            loadFinancialRecords();
-        }
-    }
-}
-
-// Attendance Management Functions
-function searchDailyAttendance(searchTerm) {
-    const term = searchTerm.toLowerCase().trim();
-    const rows = document.querySelectorAll('#dailyAttendanceBody tr');
-
-    rows.forEach(row => {
-        const employeeId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-        const employeeName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const department = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-
-        if (term === '' ||
-            employeeId.includes(term) ||
-            employeeName.includes(term) ||
-            department.includes(term)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
-function loadDailyAttendance() {
-    const date = document.getElementById('attendanceDate').value;
-    const dailyAttendanceBody = document.getElementById('dailyAttendanceBody');
-    dailyAttendanceBody.innerHTML = '';
-
-    if (!date) {
-        alert('الرجاء اختيار تاريخ');
-        return;
-    }
-
-    if (employees.length === 0) {
-        dailyAttendanceBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
-        return;
-    }
-
-    employees.forEach(emp => {
-        const record = attendanceRecords.find(r => r.employeeId === emp.id && r.date === date);
-        const isPresent = record?.status === 'present' || !record;
-
-        const row = document.createElement('tr');
-        if (record) {
-            row.classList.add(record.status);
-        } else {
-            row.classList.add('unsaved', 'present');
-        }
-
-        row.innerHTML = `
-            <td>${emp.employeeId}</td>
-            <td>${emp.name}</td>
-            <td>${emp.department}</td>
-            <td>
-                <select class="attendance-status" data-employee="${emp.id}">
-                    <option value="present" ${isPresent ? 'selected' : ''}>حاضر</option>
-                    <option value="absent" ${record?.status === 'absent' ? 'selected' : ''}>غائب</option>
-                </select>
-            </td>
-            <td>
-                <input type="number" class="work-hours" data-employee="${emp.id}" 
-                       value="${isPresent ? (record?.workHours || 8) : 0}" min="0" max="12">
-            </td>
-            <td>
-                <input type="number" class="extra-hours" data-employee="${emp.id}" 
-                       value="${record?.extraHours || 0}" min="0" max="16">
-            </td>
-            <td>
-                <input type="number" class="delay-minutes" data-employee="${emp.id}" 
-                       value="${record?.delay || 0}" min="0">
-            </td>
-            <td>
-                <input type="text" class="notes" data-employee="${emp.id}" 
-                       value="${record?.notes || ''}">
-            </td>
-            <td>
-                <button class="action-btn save-btn" data-employee="${emp.id}">حفظ</button>
-            </td>
-        `;
-
-        dailyAttendanceBody.appendChild(row);
-
-        row.querySelectorAll('.attendance-status, .work-hours, .extra-hours, .delay-minutes, .notes').forEach(element => {
-            element.addEventListener('change', function () {
-                if (!row.classList.contains('unsaved')) {
-                    row.classList.add('unsaved');
-                }
-            });
-        });
-
-        const attendanceStatus = row.querySelector(`.attendance-status[data-employee="${emp.id}"]`);
-        const workHoursInput = row.querySelector(`.work-hours[data-employee="${emp.id}"]`);
-
-        attendanceStatus.addEventListener('change', () => {
-            workHoursInput.value = attendanceStatus.value === 'present' ? 8 : 0;
-            if (!row.classList.contains('unsaved')) {
-                row.classList.add('unsaved');
-            }
-        });
-
-        row.querySelector('.save-btn').addEventListener('click', function () {
-            const employeeId = this.dataset.employee;
-            saveEmployeeAttendance(employeeId);
-            updateRowStatus(row);
-        });
-    });
-}
-
 function saveEmployeeAttendance(employeeId) {
     const date = document.getElementById('attendanceDate').value;
     const status = document.querySelector(`.attendance-status[data-employee="${employeeId}"]`).value;
@@ -729,8 +603,10 @@ function generateReport() {
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
             <td>${report.daysData.attendedDays}</td>
-            <td>${report.daysData.totalDelay}</td>
-            <td>${report.daysData.absentDays}</td>
+             <td>${report.daysData.absentDays}</td>
+            <td>${report.delayDays}</td>
+            <td>${report.delayValue}</td>
+           
             <td>${report.daysData.totalExtraHours.toFixed(2)}</td>
             <td>${report.daysData.extraDays.toFixed(2)}</td>
             <td>${report.financialDetails?.penalty.toFixed(2) || '0.00'}</td>
@@ -862,6 +738,7 @@ function calculateWorkedDays(employee, monthlyRecords) {
     });
 
     const extraDays = (totalExtraHours * 1.5) / 8;
+    const delayDays = calculateDelayDays(totalDelay); // Calculate delay days
 
     return {
         attendedDays,
@@ -869,7 +746,8 @@ function calculateWorkedDays(employee, monthlyRecords) {
         totalExtraHours,
         extraDays,
         totalDelay,
-        totalWorkedDays: attendedDays + extraDays
+        delayDays, // Include delay days
+        totalWorkedDays: attendedDays + extraDays - delayDays // Subtract delay days
     };
 }
 
@@ -898,7 +776,7 @@ function calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate) {
     const daysData = calculateWorkedDays(employee, monthlyRecords);
     const financialData = calculateFinancialComponents(employee.id, fromDate, toDate);
 
-    const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription;
+    const initialSalary = daysData.totalWorkedDays * dailyRates.dailySubscription; // Updated total worked days
     const inclusiveSalary = daysData.attendedDays * dailyRates.dailyInclusive;
     const baseSalary = initialSalary + employee.transfers - employee.insuranceMoney;
 
@@ -928,6 +806,11 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
 
     const salaryData = calculateSalaryComponents(employee, monthlyRecords, fromDate, toDate);
 
+    // Calculate total delay in minutes and its value
+    const totalDelayMinutes = salaryData.daysData.totalDelay;
+    const delayDays = salaryData.daysData.delayDays; // Use calculated delay days
+    const delayValue = calculateDelayValue(totalDelayMinutes, salaryData.dailyRates.dailySubscription);
+
     return {
         employeeId: employee.employeeId,
         employeeName: employee.name,
@@ -935,16 +818,19 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
         fromDate,
         toDate,
         ...salaryData,
+        delayDays: delayDays.toFixed(2),
+        delayValue: delayValue.toFixed(2),
         transfers: employee.transfers,
         insuranceMoney: employee.insuranceMoney,
         breakdown: {
+            "أيام التأخير": delayDays.toFixed(2),
+            "قيمة التأخير": delayValue.toFixed(2),
             "أجر الاشتراك اليومي": salaryData.dailyRates.dailySubscription.toFixed(2),
             "أجر الشامل اليومي": salaryData.dailyRates.dailyInclusive.toFixed(2),
             "أيام الحضور الفعلي": salaryData.daysData.attendedDays,
             "أيام الغياب": salaryData.daysData.absentDays,
             "الساعات الإضافية": salaryData.daysData.totalExtraHours.toFixed(2),
             "أيام الإضافي": salaryData.daysData.extraDays.toFixed(2),
-            "التأخير": salaryData.daysData.totalDelay,
             "إجمالي أيام العمل": salaryData.daysData.totalWorkedDays.toFixed(2),
             "الراتب الأولي (اشتراك)": salaryData.initialSalary.toFixed(2),
             "الراتب الشامل": salaryData.inclusiveSalary.toFixed(2),
@@ -1055,4 +941,15 @@ function exportReportAsCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Function to calculate delay in days
+function calculateDelayDays(delayMinutes) {
+    return ((delayMinutes * 2) / 60) / 8;
+}
+
+// Function to calculate delay value
+function calculateDelayValue(delayMinutes, dailySalary) {
+    const delayDays = calculateDelayDays(delayMinutes);
+    return delayDays * dailySalary;
 }
