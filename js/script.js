@@ -938,12 +938,13 @@ function exportReportAsCSV() {
         "الراتب الشامل",
         "الراتب الأولي",
         "إجمالي أيام العمل",
-        " اليومية ",
+        "أجر الاشتراك اليومي",
         "جزاء",
         "أيام إضافية",
         "ساعات إضافية",
-        "أيام الغياب",
+        "قيمة التأخير",
         "إجمالي التأخير",
+        "أيام الغياب",
         "أيام الحضور",
         "اسم الموظف",
         "رقم الموظف"
@@ -951,41 +952,46 @@ function exportReportAsCSV() {
 
     // Add data rows (columns also reversed to match header)
     filteredEmployees.forEach(emp => {
-    const report = generateSalaryReport(emp.id, fromDate, toDate);
+        const report = generateSalaryReport(emp.id, fromDate, toDate);
 
-    // Safeguard against undefined values
-    const penaltyDaysText = {
-        0: 'لا يوجد',
-        0.5: 'نص يوم',
-        1: 'يوم',
-        2: 'يومين',
-        3: 'تلات ايام'
-    }[report.penaltyDays] || `${report.penaltyDays} يوم`;
+        if (!report) {
+            console.warn(`No report generated for employee ID: ${emp.id}`);
+            return;
+        }
 
-    csvContent += [
-        report.employeeId,
-        report.employeeName,
-        report.daysData.attendedDays || 0,
-        report.daysData.absentDays || 0,
-        report.delayDays.toFixed(2),
-        report.delayValue.toFixed(2),
-        report.daysData.totalExtraHours.toFixed(2),
-        report.daysData.extraDays.toFixed(2),
-        penaltyDaysText,
-        report.dailyRates.dailySubscription.toFixed(2),
-        report.daysData.totalWorkedDays.toFixed(2),
-        report.initialSalary.toFixed(2),
-        report.inclusiveSalary.toFixed(2),
-        report.financialDetails.advance.toFixed(2),
-        report.financialDetails.deferredAdvance.toFixed(2),
-        report.transfers.toFixed(2),
-        report.financialDetails.regularityAllowance.toFixed(2),
-        report.financialDetails.bonus.toFixed(2),
-        report.insuranceMoney.toFixed(2),
-        report.netSalary.toFixed(2),
-        (report.netSalary + report.inclusiveSalary).toFixed(2)
-    ].join(',') + '\n';
-});
+        // Safeguard against undefined values
+        const penaltyDaysText = {
+            0: 'لا يوجد',
+            0.5: 'نص يوم',
+            1: 'يوم',
+            2: 'يومين',
+            3: 'تلات ايام'
+        }[report.penaltyDays] || `${report.penaltyDays || 0} يوم`;
+
+        csvContent += [
+            (report.netSalary + report.inclusiveSalary) || 0,
+            report.netSalary || 0,
+            report.insuranceMoney || 0,
+            report.financialDetails?.bonus || 0,
+            report.financialDetails?.regularityAllowance || 0,
+            report.transfers || 0,
+            report.financialDetails?.deferredAdvance || 0,
+            report.financialDetails?.advance || 0,
+            report.inclusiveSalary || 0,
+            report.initialSalary || 0,
+            report.totalWorkedDays || 0,
+            report.dailyRates?.dailySubscription || 0,
+            penaltyDaysText,
+            report.daysData?.extraDays || 0,
+            report.daysData?.totalExtraHours || 0,
+            report.delayValue || 0,
+            report.delayDays || 0,
+            report.daysData?.absentDays || 0,
+            report.daysData?.attendedDays || 0,
+            report.employeeName || '',
+            report.employeeId || ''
+        ].map(value => `"${value}"`).join(',') + '\n';
+    });
 
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
