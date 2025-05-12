@@ -291,3 +291,19 @@ tr:nth-child(even) {
     text-align: center;
     font-size: 14px;
 }
+
+#financialSearch {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+#clearFinancialSearch {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+#clearFinancialSearch:hover {
+    background-color: #c0392b;
+}

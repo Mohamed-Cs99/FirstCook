@@ -178,6 +178,17 @@ document.addEventListener('DOMContentLoaded', function () {
         generateReport();
     });
 
+    // Real-time financial search
+    document.getElementById('financialSearch').addEventListener('input', function () {
+        searchFinancialRecords(this.value);
+    });
+
+    // Clear financial search
+    document.getElementById('clearFinancialSearch').addEventListener('click', function () {
+        document.getElementById('financialSearch').value = '';
+        searchFinancialRecords('');
+    });
+
     // Initial data load
     loadEmployees();
     loadDailyAttendance();
@@ -464,7 +475,7 @@ function calculateDeduction(status, delay) {
 // Financial Transactions Functions
 function loadFinancialEmployeeOptions() {
     const select = document.getElementById('financialEmployee');
-    select.innerHTML = '<option value="">اختر الموظف</option>';
+    select.innerHTML = '<option value="">جميع الموظفين </option>';
 
     employees.forEach(emp => {
         const option = document.createElement('option');
@@ -509,7 +520,10 @@ function loadFinancialRecords() {
             0.5: 'نص يوم',
             1: 'يوم',
             2: 'يومين',
-            3: 'تلات ايام'
+            3: 'تلات ايام',
+            4: 'اربعة ايام',
+            5: 'خمسة ايام',
+        
         }[record.penalty] || `${record.penalty} يوم`;
 
         const row = document.createElement('tr');
@@ -533,6 +547,7 @@ function loadFinancialRecords() {
 
     addFinancialActionListeners();
 }
+
 function addFinancialActionListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.removeEventListener('click', editFinancialHandler); // Prevent duplicate listeners
@@ -570,6 +585,24 @@ function deleteFinancialHandler() {
         localStorage.setItem('financial', JSON.stringify(financialRecords));
         loadFinancialRecords();
     }
+}
+
+// Function to search financial records
+function searchFinancialRecords(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const financialBody = document.getElementById('financialBody');
+    const rows = financialBody.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const employeeName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const employeeId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+
+        if (term === '' || employeeName.includes(term) || employeeId.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 // Report Generation Functions
@@ -858,16 +891,13 @@ function generateSalaryReport(employeeId, fromDate, toDate) {
     const delayDays = salaryData.daysData.delayDays || 0; // Use calculated delay days
     const delayValue = calculateDelayValue(totalDelayMinutes, salaryData.dailyRates.dailySubscription || 0);
 
-    // Debug logs
-    console.log(`Employee ID: ${employeeId}`);
-    console.log(`Total Worked Days (before adjustment): ${salaryData.daysData.totalWorkedDays}`);
-    console.log(`Penalty Days: ${salaryData.penaltyDays}`);
+ 
 
     // Subtract penalty days from total worked days
     const penaltyDays = salaryData.penaltyDays || 0; // Ensure penaltyDays is a valid number
     const adjustedTotalWorkedDays = salaryData.daysData.totalWorkedDays - penaltyDays;
 
-    console.log(`Total Worked Days (after adjustment): ${adjustedTotalWorkedDays}`);
+   
 
     return {
         employeeId: employee.employeeId,

@@ -160,7 +160,7 @@
                 <div class="form-group">
                     <label for="financialEmployee">اختر الموظف</label>
                     <select id="financialEmployee" name="financialEmployee" required>
-                        <option value="">اختر الموظف</option>
+                        <option value="">جميع الموظفين </option>
                     </select>
                 </div>
             </div>
@@ -182,6 +182,8 @@
                             <option value="1">يوم</option>
                             <option value="2">يومين</option>
                             <option value="3">تلات ايام</option>
+                            <option value="4">اربعة ايام</option>
+                            <option value="5">خمسة ايام</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -198,6 +200,10 @@
                 </div>
             </form>
             <div class="table-container" style="margin-top: 30px;">
+                <div class="search-container">
+                    <input type="text" id="financialSearch" placeholder="ابحث باسم الموظف أو رقمه...">
+                    <button id="clearFinancialSearch" class="search-btn">مسح البحث</button>
+                </div>
                 <table id="financialTable">
                     <thead>
                         <tr>
