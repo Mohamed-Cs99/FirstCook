@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    
+
     <script>
         // Check authentication
         if (sessionStorage.getItem('isAuthenticated') !== 'true') {
@@ -102,11 +102,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="empSubscription">الراتب الأساسي</label>
-                        <input type="number" id="empSubscription" name="empSubscription" >
+                        <input type="number" id="empSubscription" name="empSubscription">
                     </div>
                     <div class="form-group">
                         <label for="empInclusive">الراتب المتغير</label>
-                        <input type="number" id="empInclusive" name="empInclusive" >
+                        <input type="number" id="empInclusive" name="empInclusive">
                     </div>
                     <div class="form-group">
                         <label for="empTransfers">بدل انتقالات</label>
@@ -236,6 +236,27 @@
                         <option value="">جميع الموظفين</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="reportDepartment">اختر القسم (اختياري)</label>
+                    <select id="reportDepartment" name="reportDepartment">
+                        <option value="">جميع الأقسام</option>
+                        <option value="ادارة">ادارة</option>
+                        <option value="مكابس">مكابس</option>
+                        <option value="مقصات">مقصات</option>
+                        <option value="تجميع">تجميع</option>
+                        <option value="مخزن">مخزن</option>
+                        <option value="فرن">فرن</option>
+                        <option value="امن">امن</option>
+                        <option value="خدمات">خدمات</option>
+                        <option value="صيانة">صيانة</option>
+                        <option value="بوفيه">بوفيه</option>
+                        <option value="عربيه">عربيه</option>
+                    </select>
+                </div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="reportSearch" placeholder="ابحث باسم الموظف أو رقمه...">
+                <button id="clearReportSearch" class="search-btn">مسح البحث</button>
             </div>
             <button id="generateReportBtn" class="report-btn">إنشاء التقرير</button>
             <button id="exportReportBtn" class="action-btn">تصدير التقرير كملف CSV</button>
@@ -245,6 +266,7 @@
                         <tr>
                             <th>رقم الموظف</th>
                             <th>اسم الموظف</th>
+                            <th>القسم</th>
                             <th>أيام الحضور</th>
                             <th>الغياب</th>
                             <th>أيام التأخير</th>
@@ -266,9 +288,30 @@
                             <th>إجمالي الراتب بالمتغير</th>
                             <th>تفاصيل</th>
                         </tr>
+
                     </thead>
                     <tbody id="reportBody"></tbody>
                 </table>
+            </div>
+            <div id="reportDetails" style="margin-top: 30px; display: none;">
+                <h3>تفاصيل الحضور</h3>
+                <div class="table-container">
+                    <table id="detailsTable">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الحضور</th>
+                                <th>الساعات الرئيسية</th>
+                                <th>الساعات الإضافية</th>
+                                <th>إجمالي الساعات</th>
+                                <th>التأخير</th>
+                                <th>الخصم</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsBody"></tbody>
+                    </table>
+                </div>
             </div>
             <div id="reportDetails" style="margin-top: 30px; display: none;">
                 <h3>تفاصيل الحضور</h3>

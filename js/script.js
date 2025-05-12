@@ -167,6 +167,17 @@ document.addEventListener('DOMContentLoaded', function () {
         generateReport();
     });
 
+    // Real-time report search
+    document.getElementById('reportSearch').addEventListener('input', function () {
+        generateReport();
+    });
+
+    // Clear search functionality
+    document.getElementById('clearReportSearch').addEventListener('click', function () {
+        document.getElementById('reportSearch').value = '';
+        generateReport();
+    });
+
     // Initial data load
     loadEmployees();
     loadDailyAttendance();
@@ -578,6 +589,8 @@ function generateReport() {
     const fromDate = document.getElementById('reportFromDate').value;
     const toDate = document.getElementById('reportToDate').value;
     const employeeId = document.getElementById('reportEmployee').value;
+    const department = document.getElementById('reportDepartment').value.toLowerCase();
+    const searchTerm = document.getElementById('reportSearch').value.toLowerCase();
 
     if (!fromDate || !toDate) {
         alert('الرجاء اختيار الفترة');
@@ -590,8 +603,23 @@ function generateReport() {
     }
 
     let filteredEmployees = employees;
+
+    // Filter by employee ID
     if (employeeId) {
-        filteredEmployees = employees.filter(e => e.id === employeeId);
+        filteredEmployees = filteredEmployees.filter(e => e.id === employeeId);
+    }
+
+    // Filter by department
+    if (department) {
+        filteredEmployees = filteredEmployees.filter(e => e.department.toLowerCase() === department);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+        filteredEmployees = filteredEmployees.filter(e =>
+            e.name.toLowerCase().includes(searchTerm) ||
+            e.employeeId.toLowerCase().includes(searchTerm)
+        );
     }
 
     if (filteredEmployees.length === 0) {
@@ -605,50 +633,35 @@ function generateReport() {
     filteredEmployees.forEach(emp => {
         const report = generateSalaryReport(emp.id, fromDate, toDate);
 
-        // Safeguard against undefined values
-        const attendedDays = report?.daysData?.attendedDays || 0;
-        const absentDays = report?.daysData?.absentDays || 0;
-        const delayDays = Number(report?.delayDays || 0); // Ensure delayDays is a number
-        const delayValue = Number(report?.delayValue || 0); // Ensure delayValue is a number
-        const totalExtraHours = Number(report?.daysData?.totalExtraHours || 0);
-        const extraDays = Number(report?.daysData?.extraDays || 0);
-        const penalty = Number(report?.financialDetails?.penalty || 0);
-        const dailySubscription = Number(report?.dailyRates?.dailySubscription || 0);
-        const totalWorkedDays = Number(report?.totalWorkedDays || 0); // Use adjusted totalWorkedDays
-        const initialSalary = Number(report?.initialSalary || 0);
-        const inclusiveSalary = Number(report?.inclusiveSalary || 0);
-        const advance = Number(report?.financialDetails?.advance || 0);
-        const deferredAdvance = Number(report?.financialDetails?.deferredAdvance || 0);
-        const regularityAllowance = Number(report?.financialDetails?.regularityAllowance || 0);
-        const bonus = Number(report?.financialDetails?.bonus || 0);
-        const insuranceMoney = Number(emp.insuranceMoney || 0);
-        const netSalary = Number(report?.netSalary || 0);
-        const totalSalaryWithInclusive = netSalary + inclusiveSalary;
+        if (!report) return;
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${emp.employeeId}</td>
             <td>${emp.name}</td>
-            <td>${attendedDays}</td>
-            <td>${absentDays}</td>
-            <td>${delayDays.toFixed(2)}</td>
-            <td>${delayValue.toFixed(2)}</td>
-            <td>${totalExtraHours.toFixed(2)}</td>
-            <td>${extraDays.toFixed(2)}</td>
-            <td>${penalty.toFixed(2)}</td>
-            <td>${dailySubscription.toFixed(2)}</td>
-            <td>${totalWorkedDays.toFixed(2)}</td> <!-- Use adjusted totalWorkedDays -->
-            <td>${initialSalary.toFixed(2)}</td>
-            <td>${inclusiveSalary.toFixed(2)}</td>
-            <td>${advance.toFixed(2)}</td>
-            <td>${deferredAdvance.toFixed(2)}</td>
-            <td>${emp.transfers.toFixed(2)}</td>
-            <td>${regularityAllowance.toFixed(2)}</td>
-            <td>${bonus.toFixed(2)}</td>
-            <td>${insuranceMoney.toFixed(2)}</td>
-            <td>${netSalary.toFixed(2)}</td>
-            <td>${totalSalaryWithInclusive.toFixed(2)}</td>
-            <td><button class="action-btn details-btn" data-employee="${emp.id}" data-from-date="${fromDate}" data-to-date="${toDate}">عرض التفاصيل</button></td>
+            <td>${emp.department}</td>
+            <td>${report.daysData.attendedDays || 0}</td>
+            <td>${report.daysData.absentDays || 0}</td>
+            <td>${report.delayDays || 0}</td>
+            <td>${report.delayValue || 0}</td>
+            <td>${report.daysData.totalExtraHours || 0}</td>
+            <td>${report.daysData.extraDays || 0}</td>
+            <td>${report.financialDetails?.penalty || 0}</td>
+            <td>${report.dailyRates.dailySubscription || 0}</td>
+            <td>${report.totalWorkedDays || 0}</td>
+            <td>${report.initialSalary || 0}</td>
+            <td>${report.inclusiveSalary || 0}</td>
+            <td>${report.financialDetails?.advance || 0}</td>
+            <td>${report.financialDetails?.deferredAdvance || 0}</td>
+            <td>${emp.transfers || 0}</td>
+            <td>${report.financialDetails?.regularityAllowance || 0}</td>
+            <td>${report.financialDetails?.bonus || 0}</td>
+            <td>${emp.insuranceMoney || 0}</td>
+            <td>${report.netSalary || 0}</td>
+            <td>${(report.netSalary + report.inclusiveSalary) || 0}</td>
+            <td>
+                <button class="action-btn details-btn" data-employee="${emp.id}" data-from-date="${fromDate}" data-to-date="${toDate}">تفاصيل</button>
+            </td>
         `;
         reportBody.appendChild(row);
     });
@@ -904,6 +917,7 @@ function exportReportAsCSV() {
     const fromDate = document.getElementById('reportFromDate').value;
     const toDate = document.getElementById('reportToDate').value;
     const employeeId = document.getElementById('reportEmployee').value;
+    const department = document.getElementById('reportDepartment').value.toLowerCase();
 
     if (!fromDate || !toDate) {
         alert('الرجاء اختيار الفترة أولاً');
@@ -916,8 +930,15 @@ function exportReportAsCSV() {
     }
 
     let filteredEmployees = employees;
+
+    // Filter by employee ID
     if (employeeId) {
-        filteredEmployees = employees.filter(e => e.id === employeeId);
+        filteredEmployees = filteredEmployees.filter(e => e.id === employeeId);
+    }
+
+    // Filter by department
+    if (department) {
+        filteredEmployees = filteredEmployees.filter(e => e.department.toLowerCase() === department);
     }
 
     if (filteredEmployees.length === 0) {
@@ -927,69 +948,59 @@ function exportReportAsCSV() {
 
     // CSV header with BOM and reversed columns for Arabic
     let csvContent = "\uFEFF" + [
-        "صافي الراتب بالمتغير",
-        "صافي الراتب",
-        "تأمين",
-        "مكافأة",
-        "بدل انتظام",
-        "بدل انتقالات",
-        "سلفة مؤجلة",
-        "سلفة",
-        "الراتب الشامل",
-        "الراتب الأولي",
-        "إجمالي أيام العمل",
-        "أجر الاشتراك اليومي",
-        "جزاء",
-        "أيام إضافية",
-        "ساعات إضافية",
-        "قيمة التأخير",
-        "إجمالي التأخير",
-        "أيام الغياب",
-        "أيام الحضور",
+        "رقم الموظف",
         "اسم الموظف",
-        "رقم الموظف"
+        "القسم",
+        "أيام الحضور",
+        "أيام الغياب",
+        "أيام التأخير",
+        "قيمة التأخير",
+        "الساعات الإضافية",
+        "الأيام الإضافية",
+        "جزاء",
+        "اليومية",
+        "إجمالي أيام العمل",
+        "الراتب الأساسي",
+        "الراتب المتغير",
+        "السلفة",
+        "سلفة مؤجلة",
+        "بدل انتقالات",
+        "بدل انتظام",
+        "مكافأة",
+        "تأمينات",
+        "صافي الراتب",
+        "إجمالي الراتب بالمتغير"
     ].join(',') + '\n';
 
-    // Add data rows (columns also reversed to match header)
+    // Add data rows
     filteredEmployees.forEach(emp => {
         const report = generateSalaryReport(emp.id, fromDate, toDate);
 
-        if (!report) {
-            console.warn(`No report generated for employee ID: ${emp.id}`);
-            return;
-        }
-
-        // Safeguard against undefined values
-        const penaltyDaysText = {
-            0: 'لا يوجد',
-            0.5: 'نص يوم',
-            1: 'يوم',
-            2: 'يومين',
-            3: 'تلات ايام'
-        }[report.penaltyDays] || `${report.penaltyDays || 0} يوم`;
+        if (!report) return;
 
         csvContent += [
-            (report.netSalary + report.inclusiveSalary) || 0,
-            report.netSalary || 0,
-            report.insuranceMoney || 0,
-            report.financialDetails?.bonus || 0,
-            report.financialDetails?.regularityAllowance || 0,
-            report.transfers || 0,
-            report.financialDetails?.deferredAdvance || 0,
-            report.financialDetails?.advance || 0,
-            report.inclusiveSalary || 0,
-            report.initialSalary || 0,
-            report.totalWorkedDays || 0,
-            report.dailyRates?.dailySubscription || 0,
-            penaltyDaysText,
-            report.daysData?.extraDays || 0,
-            report.daysData?.totalExtraHours || 0,
-            report.delayValue || 0,
+            emp.employeeId || '',
+            emp.name || '',
+            emp.department || '',
+            report.daysData.attendedDays || 0,
+            report.daysData.absentDays || 0,
             report.delayDays || 0,
-            report.daysData?.absentDays || 0,
-            report.daysData?.attendedDays || 0,
-            report.employeeName || '',
-            report.employeeId || ''
+            report.delayValue || 0,
+            report.daysData.totalExtraHours || 0,
+            report.daysData.extraDays || 0,
+            report.financialDetails?.penalty || 0,
+            report.dailyRates.dailySubscription || 0,
+            report.totalWorkedDays || 0,
+            report.initialSalary || 0,
+            report.inclusiveSalary || 0,
+            report.financialDetails?.advance || 0,
+            report.financialDetails?.deferredAdvance || 0,
+            emp.transfers || 0,
+            report.financialDetails?.regularityAllowance || 0,
+            report.financialDetails?.bonus || 0,
+            emp.insuranceMoney || 0,
+            report.netSalary || 0,
+            (report.netSalary + report.inclusiveSalary) || 0
         ].map(value => `"${value}"`).join(',') + '\n';
     });
 

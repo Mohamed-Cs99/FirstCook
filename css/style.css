@@ -278,3 +278,16 @@ tr:nth-child(even) {
 #exportReportBtn:hover {
     background-color: #218838;
 }
+
+#reportSearch {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+#reportTable th, #reportTable td {
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+}
