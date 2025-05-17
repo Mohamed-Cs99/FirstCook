@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', function () {
             inclusiveSalary,
             transfers,
             insuranceMoney,
-            totalSalary
+            totalSalary,
+            status: document.getElementById('empStatus') ? document.getElementById('empStatus').value : "active" // NEW
         };
 
         if (currentEmployeeId) {
@@ -270,6 +271,7 @@ function editEmployeeHandler() {
         document.getElementById('empInclusive').value = emp.inclusiveSalary;
         document.getElementById('empTransfers').value = emp.transfers;
         document.getElementById('insuranceMoney').value = emp.insuranceMoney;
+        document.getElementById('empStatus').value = emp.status || "active";
         currentEmployeeId = id;
         document.getElementById('employeeForm').scrollIntoView();
     }
@@ -326,12 +328,13 @@ function loadDailyAttendance() {
         return;
     }
 
-    if (employees.length === 0) {
+    // Only show active employees
+    const activeEmployees = employees.filter(emp => emp.status !== "inactive");
+    if (activeEmployees.length === 0) {
         dailyAttendanceBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا يوجد موظفين مسجلين</td></tr>';
         return;
     }
-
-    employees.forEach(emp => {
+    activeEmployees.forEach(emp => {
         const record = attendanceRecords.find(r => r.employeeId === emp.id && r.date === date);
         const isPresent = record?.status === 'present' || !record;
 
