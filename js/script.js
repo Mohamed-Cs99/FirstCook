@@ -977,7 +977,7 @@ function exportReportAsCSV() {
     }
 
     // CSV header with BOM and reversed columns for Arabic
-    let csvContent = "\uFEFF" + [
+    const header = [
         "رقم الموظف",
         "اسم الموظف",
         "القسم",
@@ -1000,13 +1000,17 @@ function exportReportAsCSV() {
         "تأمينات",
         "صافي الراتب",
         "إجمالي الراتب بالمتغير"
-    ].join(',') + '\n';
+    ].join(',');
 
-    // Add data rows
+    let csvContent = "\uFEFF"; // BOM for Arabic
+
+    // Add header before each employee
     filteredEmployees.forEach(emp => {
         const report = generateSalaryReport(emp.id, fromDate, toDate);
 
         if (!report) return;
+
+        csvContent += header + '\n'; // Add header before each employee
 
         csvContent += [
             emp.employeeId || '',
