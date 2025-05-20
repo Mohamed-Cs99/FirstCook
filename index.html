@@ -119,7 +119,7 @@
                         <div class="form-group">
                         <label for="empStatus">حالة الموظف</label>
                         <select id="empStatus" name="empStatus">
-                            <option value="active">نشط</option>
+                            <option value="active" selected>نشط</option>
                             <option value="inactive">غير نشط</option>
                         </select>
                     </div>
@@ -132,6 +132,11 @@
             <div class="search-container">
                 <input type="text" id="employeeSearch" placeholder="ابحث باسم الموظف أو رقمه أو قسمه...">
                 <button id="searchEmployeeBtn" class="search-btn">مسح البحث</button>
+                <select id="employeeStatusFilter">
+                    <option value="">كل الحالات</option>
+                    <option value="active">نشط</option>
+                    <option value="inactive">غير نشط</option>
+                </select>
             </div>
             <div class="table-container">
                 <table id="employeesTable">
@@ -145,6 +150,7 @@
                             <th>بدل انتقالات</th>
                             <th>التأمين </th>
                             <th>إجمالي الراتب</th>
+                            <th>الحالة</th> <!-- Add this line -->
                             <th>إجراءات</th>
                         </tr>
                     </thead>

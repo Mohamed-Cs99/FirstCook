@@ -133,6 +133,49 @@ button {
     gap: 10px;
 }
 
+.search-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.search-container input
+{
+    flex: 1 1 180px;
+    min-width: 120px;
+    max-width: 80%;
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+.search-container select {
+    min-width: 120px;
+    max-width: 200px; /* Changed from 20% to a fixed px value */
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Responsive fix for select in search-container */
+@media (max-width: 600px) {
+    .search-container select {
+        width: 100%;
+        max-width: 300px; /* Prevents it from being too wide */
+        padding: 8px 8px; /* Slightly smaller padding for mobile */
+    }
+}
+
+.search-container button {
+    flex: 0 0 auto;
+    padding: 8px 18px;
+    border-radius: 5px;
+    border: none;
+    background: var(--primary-color);
+    color: #fff;
+    cursor: pointer;
+}
+
 .search-container input, .attendance-search input {
     flex: 1;
     padding: 12px;
@@ -263,6 +306,19 @@ tr:nth-child(even) {
     }
     th, td {
         padding: 10px 5px;
+    }
+}
+
+@media (max-width: 600px) {
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-container input,
+    .search-container select,
+    .search-container button {
+        width: 100%;
+        max-width: 100%;
     }
 }
 

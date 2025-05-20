@@ -1,4 +1,9 @@
 let employees = JSON.parse(localStorage.getItem('employees')) || [];
+employees = employees.map(emp => ({
+    ...emp,
+    status: emp.status || "active"
+}));
+localStorage.setItem('employees', JSON.stringify(employees));
 let attendanceRecords = JSON.parse(localStorage.getItem('attendance')) || [];
 let financialRecords = JSON.parse(localStorage.getItem('financial')) || [];
 let currentEmployeeId = null;
@@ -47,6 +52,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const insuranceMoney = parseFloat(document.getElementById('insuranceMoney').value) || 0;
         const totalSalary = (subscriptionSalary + inclusiveSalary + transfers) - insuranceMoney;
 
+        const status = document.getElementById('empStatus') ? document.getElementById('empStatus').value : "active";
+
         const employee = {
             id: currentEmployeeId || Date.now().toString(),
             name: document.getElementById('empName').value,
@@ -57,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
             transfers,
             insuranceMoney,
             totalSalary,
-            status: document.getElementById('empStatus') ? document.getElementById('empStatus').value : "active" // NEW
+            status: status || "active"
         };
 
         if (currentEmployeeId) {
@@ -190,6 +197,11 @@ document.addEventListener('DOMContentLoaded', function () {
         searchFinancialRecords('');
     });
 
+    // Employee status filter change
+    document.getElementById('employeeStatusFilter').addEventListener('change', function () {
+        searchEmployees(document.getElementById('employeeSearch').value);
+    });
+
     // Initial data load
     loadEmployees();
     loadDailyAttendance();
@@ -198,14 +210,19 @@ document.addEventListener('DOMContentLoaded', function () {
 // Employee Management Functions
 function searchEmployees(searchTerm) {
     const term = searchTerm.toLowerCase().trim();
+    const statusFilter = document.getElementById('employeeStatusFilter') ? document.getElementById('employeeStatusFilter').value : '';
     let filteredEmployees = employees;
 
     if (term) {
-        filteredEmployees = employees.filter(emp =>
+        filteredEmployees = filteredEmployees.filter(emp =>
             emp.name.toLowerCase().includes(term) ||
             emp.employeeId.toLowerCase().includes(term) ||
             emp.department.toLowerCase().includes(term)
         );
+    }
+
+    if (statusFilter) {
+        filteredEmployees = filteredEmployees.filter(emp => emp.status === statusFilter);
     }
 
     displayEmployees(filteredEmployees);
@@ -216,11 +233,12 @@ function displayEmployees(employeesToDisplay) {
     employeesBody.innerHTML = '';
 
     if (employeesToDisplay.length === 0) {
-        employeesBody.innerHTML = '<tr><td colspan="9" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
+        employeesBody.innerHTML = '<tr><td colspan="10" style="text-align: center;">لا توجد نتائج مطابقة</td></tr>';
         return;
     }
 
     employeesToDisplay.forEach(emp => {
+        const statusText = emp.status === "inactive" ? "غير نشط" : "نشط";
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${emp.employeeId}</td>
@@ -231,6 +249,7 @@ function displayEmployees(employeesToDisplay) {
             <td>${emp.transfers}</td>
             <td>${emp.insuranceMoney}</td>
             <td>${emp.totalSalary}</td>
+            <td>${statusText}</td> <!-- Add this line -->
             <td>
                 <button class="action-btn edit-btn" data-id="${emp.id}">تعديل</button>
                 <button class="action-btn delete-btn" data-id="${emp.id}">حذف</button>
